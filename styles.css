@@ -288,10 +288,11 @@ textarea {
 /* Map */
 #map {
     height: 450px;
-    background-color: var(--surface-light);
+    background-color: #0a2f5e;
     border-radius: var(--border-radius-sm);
     margin-top: 15px;
-    border: 1px solid var(--border);
+    border: 1px solid var(--primary-dark);
+    box-shadow: 0 0 20px rgba(0, 112, 243, 0.2);
 }
 
 /* Map Controls */
@@ -1085,4 +1086,27 @@ footer {
 
 .simulation-btn.strobe-pulse {
     box-shadow: 0 0 25px rgba(138, 50, 224, 0.6);
+}
+
+/* Map Styling */
+#map {
+    height: 450px;
+    background-color: #0a2f5e;
+    border-radius: var(--border-radius-sm);
+    margin-top: 15px;
+    border: 1px solid var(--primary-dark);
+    box-shadow: 0 0 20px rgba(0, 112, 243, 0.2);
+}
+
+/* Enhance water features on the map */
+.leaflet-tile-pane {
+    filter: hue-rotate(190deg) saturate(1.8) brightness(0.9);
+}
+
+/* Custom styling for water bodies */
+.water-overlay {
+    fill: #0070f3 !important;
+    fill-opacity: 0.7 !important;
+    stroke: #0050c9 !important;
+    stroke-width: 1 !important;
 } 

@@ -826,15 +826,38 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Function to initialize map
     function initMap() {
-        // Initialize Leaflet map with dark mode
+        // Initialize Leaflet map with blue water style
         map = L.map('map').setView([40.7128, -74.0060], 10); // Default to NYC for demo
         
-        // Add blue map tile layer
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png', {
+        // Add distinct blue map tile layer
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
             subdomains: 'abcd',
             maxZoom: 19
         }).addTo(map);
+        
+        // Apply custom styling to make water features more blue
+        fetch('https://raw.githubusercontent.com/isellsoap/leaflet-water-tiles/master/water.json')
+            .then(response => response.json())
+            .then(waterData => {
+                L.geoJSON(waterData, {
+                    style: {
+                        fillColor: '#0070f3',
+                        weight: 1,
+                        opacity: 0.8,
+                        color: '#0070f3',
+                        fillOpacity: 0.6
+                    }
+                }).addTo(map);
+            })
+            .catch(error => {
+                console.log('Could not load water overlay', error);
+                
+                // Fallback: Add a custom CSS rule to enhance water features
+                const style = document.createElement('style');
+                style.textContent = `.leaflet-tile-loaded { filter: hue-rotate(190deg) saturate(1.5) brightness(0.95); }`;
+                document.head.appendChild(style);
+            });
         
         // Add a default marker with custom icon
         const defaultIcon = L.divIcon({
@@ -864,7 +887,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         // Keep the base tile layer (now blue style)
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png', {
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
             subdomains: 'abcd',
             maxZoom: 19
