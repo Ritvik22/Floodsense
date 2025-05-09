@@ -6,6 +6,8 @@ import tensorflow as tf
 from sklearn.preprocessing import StandardScaler
 import json
 import os
+# Import the flood scenario model
+from flood_scenario_model import FloodScenarioModel
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -18,6 +20,14 @@ if os.path.exists('floodnet_model.h5'):
         print("Model loaded successfully")
     except Exception as e:
         print(f"Error loading model: {e}")
+
+# Initialize the scenario model
+try:
+    scenario_model = FloodScenarioModel()
+    print("Scenario model loaded successfully")
+except Exception as e:
+    scenario_model = None
+    print(f"Error loading scenario model: {e}")
 
 # Create a dummy scaler and dataset for simulation
 # In a real scenario, these would be loaded from saved files
@@ -177,10 +187,56 @@ def run_simulation():
     temperature = float(data.get('temperature', 20))
     
     # Extract scenario text and years
-    scenario = data.get('scenario', '').lower()
+    scenario_text = data.get('scenario', '')
     years = int(data.get('years', 20))
     
+    # Use the new scenario model if available
+    if scenario_model is not None:
+        try:
+            # Get predictions from the BERT model
+            scenario_factors = scenario_model.predict(scenario_text)
+            
+            # Map the scenario factors to our simulation features
+            features = {
+                "Rainfall": rainfall,
+                "WaterLevel": water_level,
+                "Humidity": humidity,
+                "Temperature": temperature,
+                "ClimateChange": scenario_factors["ClimateChange"],
+                "Urbanization": scenario_factors["Urbanization"],
+                "Deforestation": scenario_factors["Deforestation"],
+                "DrainageSystems": scenario_factors["DrainageSystems"],
+                "DamsQuality": scenario_factors["DamsQuality"]
+            }
+            
+            # Run simulation with these features
+            risks, narrative = simulate_and_narrate(features, years)
+            
+            # Create a more detailed narrative based on scenario factors
+            high_factors = [k for k, v in scenario_factors.items() if v >= 7]
+            low_factors = [k for k, v in scenario_factors.items() if v <= 3]
+            
+            detailed_narrative = narrative + "\n\n"
+            if high_factors:
+                detailed_narrative += f"High impact factors include: {', '.join(high_factors)}. "
+            if low_factors:
+                detailed_narrative += f"Well-managed factors include: {', '.join(low_factors)}. "
+                
+            return jsonify({
+                "risks": risks,
+                "narrative": detailed_narrative,
+                "years": list(range(years)),
+                "features": features,
+                "scenario_factors": scenario_factors
+            })
+            
+        except Exception as e:
+            print(f"Error using scenario model: {e}")
+            # Fall back to keyword-based approach if there's an error
+    
+    # Original keyword-based approach as fallback
     # Parse scenario text for features
+    scenario = scenario_text.lower()
     keywords = {
         "urban": "Urbanization",
         "deforest": "Deforestation",

@@ -41,7 +41,7 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: transparent;
+    background: rgba(10, 14, 35, 0.3); /* Very subtle dark blue background */
     z-index: -100; /* Extremely low z-index to ensure it's behind everything */
     overflow: hidden;
     pointer-events: none;
@@ -57,11 +57,11 @@ body {
     background-image: 
         linear-gradient(
             0deg,
-            rgba(0, 112, 243, 0.07) 25%, 
-            rgba(0, 210, 255, 0.07) 38%, 
-            rgba(0, 112, 243, 0.07) 50%, 
-            rgba(0, 60, 130, 0.08) 62%, 
-            rgba(0, 112, 243, 0.07) 75%
+            rgba(0, 112, 243, 0.15) 25%, 
+            rgba(0, 210, 255, 0.15) 38%, 
+            rgba(0, 112, 243, 0.15) 50%, 
+            rgba(0, 60, 130, 0.18) 62%, 
+            rgba(0, 112, 243, 0.15) 75%
         );
     opacity: 1;
     animation: waterWave 20s linear infinite;
@@ -78,11 +78,11 @@ body {
     background-image: 
         linear-gradient(
             60deg,
-            rgba(0, 112, 243, 0.06) 25%, 
-            rgba(0, 210, 255, 0.06) 38%, 
-            rgba(0, 112, 243, 0.06) 50%, 
-            rgba(0, 60, 130, 0.07) 62%, 
-            rgba(0, 112, 243, 0.06) 75%
+            rgba(0, 112, 243, 0.12) 25%, 
+            rgba(0, 210, 255, 0.12) 38%, 
+            rgba(0, 112, 243, 0.12) 50%, 
+            rgba(0, 60, 130, 0.15) 62%, 
+            rgba(0, 112, 243, 0.12) 75%
         );
     opacity: 1;
     animation: waterWave 15s linear infinite reverse;
@@ -94,13 +94,13 @@ body {
         transform: rotate(0deg) scale(1);
     }
     25% {
-        transform: rotate(90deg) scale(1.05);
+        transform: rotate(90deg) scale(1.1);
     }
     50% {
-        transform: rotate(180deg) scale(1.1);
+        transform: rotate(180deg) scale(1.2);
     }
     75% {
-        transform: rotate(270deg) scale(1.05);
+        transform: rotate(270deg) scale(1.1);
     }
     100% {
         transform: rotate(360deg) scale(1);
@@ -1243,4 +1243,27 @@ footer {
 
 .result::before, .history-info::before, .simulation-narrative::before, .simulation-factors::before, .chart-container::before, .gauge-container::before, .similar-locations-list::before {
     content: none;
+}
+
+.factor-value {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.factor-value.high {
+    background-color: rgba(255, 82, 82, 0.2);
+    color: var(--danger);
+}
+
+.factor-value.medium {
+    background-color: rgba(255, 171, 0, 0.2);
+    color: var(--warning);
+}
+
+.factor-value.low {
+    background-color: rgba(0, 230, 118, 0.2);
+    color: var(--success);
 } 

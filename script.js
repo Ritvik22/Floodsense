@@ -690,11 +690,25 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Display factors that were considered
         let factorsHTML = '<h4>Environmental Factors Used:</h4><ul>';
+        
+        // Check if we have scenario_factors from the ML model
+        if (data.scenario_factors) {
+            // Display ML scenario factors
+            factorsHTML += '<li><strong>Scenario Analysis Results:</strong></li>';
+            for (const [key, value] of Object.entries(data.scenario_factors)) {
+                const factorClass = value >= 7 ? 'high' : value <= 3 ? 'low' : 'medium';
+                factorsHTML += `<li><strong>${key}:</strong> <span class="factor-value ${factorClass}">${value.toFixed(1)}</span></li>`;
+            }
+            factorsHTML += '<li><hr></li>';
+        }
+        
+        // Display environmental parameters
         for (const [key, value] of Object.entries(data.features)) {
-            if (typeof value === 'number') {
+            if (typeof value === 'number' && !['ClimateChange', 'Urbanization', 'Deforestation', 'DrainageSystems', 'DamsQuality'].includes(key)) {
                 factorsHTML += `<li><strong>${key}:</strong> ${value.toFixed(1)}</li>`;
             }
         }
+        
         factorsHTML += '</ul>';
         simulationFactors.innerHTML = factorsHTML;
         
