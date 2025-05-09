@@ -1649,10 +1649,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 layout: {
                     padding: {
-                        left: 20,
-                        right: 20,
-                        top: 20,
-                        bottom: 20
+                        left: 25,
+                        right: 25,
+                        top: 25,
+                        bottom: 25
                     }
                 },
                 animation: {
@@ -1664,7 +1664,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         // Staggered animation for each segment
                         return context.dataIndex * 150;
                     }
-                }
+                },
+                // Adjust radius to prevent cutoff
+                radius: '80%'
             }
         });
         
@@ -1698,6 +1700,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const canvasParent = canvas.parentNode;
             chartWrapper.appendChild(canvas);
             canvasParent.appendChild(chartWrapper);
+            
+            // Force chart resize after a short delay to ensure proper rendering
+            setTimeout(() => {
+                if (factorsChart) {
+                    factorsChart.resize();
+                }
+            }, 100);
         }
     }
     
