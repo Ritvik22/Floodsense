@@ -1542,89 +1542,62 @@ document.addEventListener('DOMContentLoaded', function() {
             factorsChart.destroy();
         }
         
-        // Create gradients for each bar
-        const rainfallGradient = ctx.createLinearGradient(0, 0, 0, 400);
-        rainfallGradient.addColorStop(0, 'rgba(0, 112, 243, 0.9)');
-        rainfallGradient.addColorStop(1, 'rgba(0, 112, 243, 0.2)');
+        // Get factor values
+        const rainfallFactor = (prediction.factorScores.rainfall / prediction.totalScore * 100);
+        const waterLevelFactor = (prediction.factorScores.waterLevel / prediction.totalScore * 100);
+        const humidityFactor = (prediction.factorScores.humidity / prediction.totalScore * 100);
+        const temperatureFactor = (prediction.factorScores.temperature / prediction.totalScore * 100);
         
-        const waterLevelGradient = ctx.createLinearGradient(0, 0, 0, 400);
-        waterLevelGradient.addColorStop(0, 'rgba(0, 210, 255, 0.9)');
-        waterLevelGradient.addColorStop(1, 'rgba(0, 210, 255, 0.2)');
+        // Ensure the values add up to 100% by adjusting for rounding errors
+        const sum = rainfallFactor + waterLevelFactor + humidityFactor + temperatureFactor;
+        const adjustmentFactor = 100 / sum;
         
-        const humidityGradient = ctx.createLinearGradient(0, 0, 0, 400);
-        humidityGradient.addColorStop(0, 'rgba(102, 126, 234, 0.9)');
-        humidityGradient.addColorStop(1, 'rgba(102, 126, 234, 0.2)');
+        // Define colors for the pie chart
+        const colors = [
+            'rgba(0, 112, 243, 0.8)',  // Rainfall - Blue
+            'rgba(0, 210, 255, 0.8)',  // Water Level - Light Blue
+            'rgba(102, 126, 234, 0.8)', // Humidity - Purple
+            'rgba(142, 68, 173, 0.8)'  // Temperature - Violet
+        ];
         
-        const temperatureGradient = ctx.createLinearGradient(0, 0, 0, 400);
-        temperatureGradient.addColorStop(0, 'rgba(142, 68, 173, 0.9)');
-        temperatureGradient.addColorStop(1, 'rgba(142, 68, 173, 0.2)');
+        const hoverColors = [
+            'rgba(0, 112, 243, 1)',  // Rainfall - Blue
+            'rgba(0, 210, 255, 1)',  // Water Level - Light Blue
+            'rgba(102, 126, 234, 1)', // Humidity - Purple
+            'rgba(142, 68, 173, 1)'  // Temperature - Violet
+        ];
         
-        // Create new chart
+        // Create new pie chart
         factorsChart = new Chart(ctx, {
-            type: 'bar',
+            type: 'pie',
             data: {
                 labels: ['Rainfall', 'Water Level', 'Humidity', 'Temperature'],
                 datasets: [{
-                    label: 'Factor Contribution to Risk (%)',
                     data: [
-                        (prediction.factorScores.rainfall / prediction.totalScore * 100).toFixed(1),
-                        (prediction.factorScores.waterLevel / prediction.totalScore * 100).toFixed(1),
-                        (prediction.factorScores.humidity / prediction.totalScore * 100).toFixed(1),
-                        (prediction.factorScores.temperature / prediction.totalScore * 100).toFixed(1)
+                        (rainfallFactor * adjustmentFactor).toFixed(1),
+                        (waterLevelFactor * adjustmentFactor).toFixed(1),
+                        (humidityFactor * adjustmentFactor).toFixed(1),
+                        (temperatureFactor * adjustmentFactor).toFixed(1)
                     ],
-                    backgroundColor: [
-                        rainfallGradient,
-                        waterLevelGradient,
-                        humidityGradient,
-                        temperatureGradient
-                    ],
-                    borderColor: [
-                        'rgba(0, 112, 243, 1)',
-                        'rgba(0, 210, 255, 1)',
-                        'rgba(102, 126, 234, 1)',
-                        'rgba(142, 68, 173, 1)'
-                    ],
-                    borderWidth: 1,
-                    borderRadius: 8,
-                    borderSkipped: false
+                    backgroundColor: colors,
+                    hoverBackgroundColor: hoverColors,
+                    borderColor: 'rgba(28, 36, 56, 0.8)',
+                    borderWidth: 2,
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'Contribution (%)',
-                            font: {
-                                weight: 'bold',
-                                size: 14
-                            }
-                        },
-                        max: 100,
-                        grid: {
-                            color: 'rgba(42, 55, 82, 0.3)',
-                            drawBorder: false
-                        },
-                        ticks: {
-                            padding: 10
-                        }
-                    },
-                    x: {
-                        grid: {
-                            display: false,
-                            drawBorder: false
-                        },
-                        ticks: {
-                            padding: 10
-                        }
-                    }
-                },
                 plugins: {
                     legend: {
-                        display: false
+                        position: 'right',
+                        labels: {
+                            color: '#f0f2f5',
+                            font: {
+                                size: 14
+                            },
+                            padding: 20
+                        }
                     },
                     tooltip: {
                         backgroundColor: 'rgba(12, 16, 27, 0.9)',
@@ -1638,21 +1611,60 @@ document.addEventListener('DOMContentLoaded', function() {
                         padding: 15,
                         caretSize: 8,
                         cornerRadius: 8,
-                        displayColors: false,
                         callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                return `${label}: ${value}% of total risk`;
+                            },
                             afterLabel: function(context) {
                                 const index = context.dataIndex;
-                                const labels = ['Rainfall: ' + rainfall + ' mm',
-                                              'Water Level: ' + waterLevel + ' m',
-                                              'Humidity: ' + humidity + '%',
-                                              'Temperature: ' + temperature + '°C'];
+                                const labels = [
+                                    `Rainfall: ${rainfall} mm`,
+                                    `Water Level: ${waterLevel} m`,
+                                    `Humidity: ${humidity}%`,
+                                    `Temperature: ${temperature}°C`
+                                ];
                                 return labels[index];
                             }
                         }
                     }
+                },
+                layout: {
+                    padding: {
+                        left: 10,
+                        right: 10,
+                        top: 0,
+                        bottom: 0
+                    }
+                },
+                elements: {
+                    arc: {
+                        borderWidth: 1,
+                        borderColor: 'rgba(28, 36, 56, 0.8)'
+                    }
+                },
+                animation: {
+                    animateRotate: true,
+                    animateScale: true
                 }
             }
         });
+        
+        // Add title above the chart
+        const chartContainer = document.querySelector('#chart-tab .chart-container');
+        const titleElement = document.createElement('div');
+        titleElement.className = 'chart-title';
+        titleElement.textContent = 'Risk Factor Distribution';
+        
+        // Remove existing title if any
+        const existingTitle = chartContainer.querySelector('.chart-title');
+        if (existingTitle) {
+            existingTitle.remove();
+        }
+        
+        // Insert title at the top of container
+        chartContainer.insertBefore(titleElement, chartContainer.firstChild);
     }
     
     // Function to update history chart

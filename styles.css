@@ -572,6 +572,16 @@ textarea {
     border: 1px solid var(--border);
 }
 
+.chart-title {
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+}
+
 /* Risk Levels */
 .risk-high {
     background-color: rgba(255, 82, 82, 0.1);
