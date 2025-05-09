@@ -39,17 +39,63 @@ body {
     animation: gradientAnimation 15s ease infinite;
     color: var(--text);
     min-height: 100vh;
+    position: relative;
 }
 
-@keyframes gradientAnimation {
+/* Main background pattern that appears behind all content */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        radial-gradient(circle at 15% 15%, rgba(0, 112, 243, 0.15) 0%, transparent 35%),
+        radial-gradient(circle at 85% 85%, rgba(0, 210, 255, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 50% 50%, rgba(102, 126, 234, 0.1) 0%, transparent 60%),
+        url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%230070f3' fill-opacity='0.08'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: -5; /* Very low z-index to ensure it's behind everything */
+    opacity: 1;
+    animation: patternFloat 60s linear infinite alternate;
+}
+
+/* Main floating background circles */
+body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        radial-gradient(circle at 20% 80%, rgba(0, 112, 243, 0.2) 0%, rgba(0, 112, 243, 0) 25%),
+        radial-gradient(circle at 80% 20%, rgba(0, 210, 255, 0.2) 0%, rgba(0, 210, 255, 0) 25%);
+    pointer-events: none;
+    z-index: -4; /* Just above the pattern but behind all content */
+    opacity: 0.5;
+    animation: floatingCircles 30s ease-in-out infinite alternate;
+}
+
+@keyframes floatingCircles {
     0% {
-        background-position: 0% 50%;
+        transform: translate(-2%, -2%) scale(1);
     }
     50% {
-        background-position: 100% 50%;
+        transform: translate(2%, 2%) scale(1.05);
     }
     100% {
-        background-position: 0% 50%;
+        transform: translate(-2%, -2%) scale(1);
+    }
+}
+
+@keyframes patternFloat {
+    0% {
+        background-position: 0% 0%;
+    }
+    100% {
+        background-position: 100% 100%;
     }
 }
 
@@ -57,6 +103,8 @@ body {
     max-width: 1400px;
     margin: 0 auto;
     padding: 20px;
+    position: relative;
+    z-index: 2; /* Place container above the body background pattern */
 }
 
 /* Header */
@@ -71,6 +119,7 @@ header {
     border: 1px solid var(--border);
     position: relative;
     overflow: hidden;
+    z-index: 2; /* Ensure header is above the background pattern */
 }
 
 header::before {
@@ -109,6 +158,8 @@ main {
     display: grid;
     grid-template-columns: 1fr 1.5fr;
     gap: 30px;
+    position: relative;
+    z-index: 2;
 }
 
 @media (max-width: 1100px) {
@@ -127,7 +178,7 @@ main {
     transition: var(--transition);
     position: relative;
     overflow: hidden;
-    z-index: 1;
+    z-index: 2;
 }
 
 .input-section::before, .result-section::before {
@@ -302,7 +353,7 @@ textarea {
     border-left: 5px solid var(--primary);
     position: relative;
     overflow: hidden;
-    z-index: 1;
+    z-index: 2; /* Ensure result is above the background pattern */
 }
 
 .result::before {
@@ -1094,7 +1145,7 @@ footer {
     transition: var(--transition);
     position: relative;
     overflow: hidden;
-    z-index: 1;
+    z-index: 2; /* Ensure cards are above the background pattern */
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 }
 
@@ -1300,4 +1351,16 @@ footer {
     background-image: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%230070f3' fill-opacity='0.1' fill-rule='evenodd'%3E%3Ccircle cx='3' cy='3' r='3'/%3E%3Ccircle cx='13' cy='13' r='3'/%3E%3C/g%3E%3C/svg%3E");
     z-index: -1;
     opacity: 0.8;
+}
+
+@keyframes gradientAnimation {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
 } 
