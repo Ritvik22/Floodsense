@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FloodSense | AI-Powered Flood Prediction</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Google Fonts - Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Add Chart.js for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Add Leaflet for map visualization -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <h1><i class="fas fa-water"></i> FloodSense</h1>
+                <p>AI-powered flood risk prediction & visualization platform</p>
+            </div>
+            <nav class="main-nav">
+                <div class="nav-link active" data-section="prediction"><i class="fas fa-chart-line"></i> Prediction</div>
+                <div class="nav-link" data-section="simulation"><i class="fas fa-flask"></i> Simulation</div>
+                <div class="nav-link" data-section="about"><i class="fas fa-info-circle"></i> About</div>
+            </nav>
+        </header>
+        
+        <main>
+            <div class="input-section">
+                <div class="section-container prediction-section active" id="prediction-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-sliders"></i> Flood Prediction</h2>
+                        <p class="section-description">Select a scenario or enter custom environmental parameters to predict flood risk</p>
+                    </div>
+                    
+                    <div class="card scenario-selection">
+                        <div class="card-header">
+                            <h3><i class="fas fa-layer-group"></i> Quick Scenarios</h3>
+                            <p class="card-description">Choose a predefined scenario to automatically populate the form</p>
+                        </div>
+                        <div class="scenario-cards">
+                            <div class="scenario-card" data-scenario="heavy-rain">
+                                <div class="scenario-icon"><i class="fas fa-cloud-showers-heavy"></i></div>
+                                <h4>Heavy Rain</h4>
+                                <div class="scenario-data">
+                                    <span>Rainfall: 150mm</span>
+                                    <span>Water Level: 4.5m</span>
+                                    <span>Humidity: 90%</span>
+                                    <span>Temp: 18°C</span>
+                                </div>
+                            </div>
+                            <div class="scenario-card" data-scenario="coastal-flooding">
+                                <div class="scenario-icon"><i class="fas fa-water"></i></div>
+                                <h4>Coastal Flooding</h4>
+                                <div class="scenario-data">
+                                    <span>Rainfall: 80mm</span>
+                                    <span>Water Level: 5.2m</span>
+                                    <span>Humidity: 85%</span>
+                                    <span>Temp: 22°C</span>
+                                </div>
+                            </div>
+                            <div class="scenario-card" data-scenario="spring-melt">
+                                <div class="scenario-icon"><i class="fas fa-snowflake"></i></div>
+                                <h4>Spring Melt</h4>
+                                <div class="scenario-data">
+                                    <span>Rainfall: 50mm</span>
+                                    <span>Water Level: 3.8m</span>
+                                    <span>Humidity: 70%</span>
+                                    <span>Temp: 8°C</span>
+                                </div>
+                            </div>
+                            <div class="scenario-card" data-scenario="moderate-conditions">
+                                <div class="scenario-icon"><i class="fas fa-cloud-sun-rain"></i></div>
+                                <h4>Moderate</h4>
+                                <div class="scenario-data">
+                                    <span>Rainfall: 60mm</span>
+                                    <span>Water Level: 2.5m</span>
+                                    <span>Humidity: 65%</span>
+                                    <span>Temp: 15°C</span>
+                                </div>
+                            </div>
+                            <div class="scenario-card" data-scenario="drought-conditions">
+                                <div class="scenario-icon"><i class="fas fa-sun"></i></div>
+                                <h4>Drought</h4>
+                                <div class="scenario-data">
+                                    <span>Rainfall: 5mm</span>
+                                    <span>Water Level: 1.0m</span>
+                                    <span>Humidity: 30%</span>
+                                    <span>Temp: 32°C</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card custom-parameters">
+                        <div class="card-header">
+                            <h3><i class="fas fa-edit"></i> Custom Parameters</h3>
+                            <p class="card-description">Enter specific environmental data for your prediction</p>
+                        </div>
+                        <form id="prediction-form">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="rainfall"><i class="fas fa-cloud-rain"></i> Rainfall (mm):</label>
+                                    <input type="number" id="rainfall" name="rainfall" step="0.01" required placeholder="Enter rainfall amount">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="water-level"><i class="fas fa-water"></i> Water Level (m):</label>
+                                    <input type="number" id="water-level" name="water-level" step="0.01" required placeholder="Enter water level">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="humidity"><i class="fas fa-tint"></i> Humidity (%):</label>
+                                    <input type="number" id="humidity" name="humidity" min="0" max="100" required placeholder="Enter humidity percentage">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="temperature"><i class="fas fa-temperature-high"></i> Temperature (°C):</label>
+                                    <input type="number" id="temperature" name="temperature" step="0.1" required placeholder="Enter temperature">
+                                </div>
+                            </div>
+                            
+                            <div class="model-selection">
+                                <label for="model-type"><i class="fas fa-brain"></i> Prediction Model:</label>
+                                <select id="model-type" name="model-type">
+                                    <option value="simplified">Simplified Rule-based Model</option>
+                                    <option value="ml-model">Machine Learning Model</option>
+                                </select>
+                            </div>
+                            
+                            <button type="submit" class="submit-btn"><i class="fas fa-bolt"></i> Predict Flood Risk</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="section-container simulation-section" id="simulation-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-chart-line"></i> Future Scenario Simulation</h2>
+                        <p class="section-description">Project how flood risks might evolve over time based on your scenario</p>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-comment-alt"></i> Scenario Description</h3>
+                            <p class="card-description">Describe a future scenario using natural language</p>
+                        </div>
+                        <form id="simulation-form">
+                            <div class="form-group">
+                                <label for="scenario-text">Describe environmental changes:</label>
+                                <textarea id="scenario-text" name="scenario-text" rows="4" placeholder="Example: Increased urbanization with climate change and decreased drainage systems"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="simulation-years"><i class="fas fa-calendar-alt"></i> Years to simulate:</label>
+                                <input type="range" id="simulation-years" name="simulation-years" min="5" max="50" value="20" step="5">
+                                <span id="years-value">20 years</span>
+                            </div>
+                            <button type="submit" class="submit-btn simulation-btn"><i class="fas fa-play-circle"></i> Run Simulation</button>
+                        </form>
+                    </div>
+                </div>
+                
+                <div class="section-container about-section" id="about-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-info-circle"></i> About FloodSense</h2>
+                        <p class="section-description">Learn how our flood prediction platform works</p>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-cogs"></i> How It Works</h3>
+                        </div>
+                        <div class="about-content">
+                            <p>FloodSense is an AI-powered platform that predicts flood risks based on environmental parameters. The system analyzes rainfall, water levels, humidity, and temperature to provide accurate risk assessments.</p>
+                            
+                            <h4><i class="fas fa-chart-bar"></i> Key Features</h4>
+                            <ul>
+                                <li>Real-time flood risk prediction</li>
+                                <li>Multiple visualization methods</li>
+                                <li>Similar location identification</li>
+                                <li>Historical comparison</li>
+                                <li>Future scenario simulation</li>
+                            </ul>
+                            
+                            <h4><i class="fas fa-brain"></i> Prediction Models</h4>
+                            <p>The platform offers two prediction models:</p>
+                            <ul>
+                                <li><strong>Simplified Rule-based Model:</strong> Works entirely in the browser using predefined risk assessment rules</li>
+                                <li><strong>Machine Learning Model:</strong> Uses a sophisticated neural network model to provide more accurate predictions based on extensive training data</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="result-section" id="result-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-chart-bar"></i> Analysis Results</h2>
+                    <p class="section-description">View and explore your prediction results through multiple visualizations</p>
+                </div>
+                
+                <div class="card">
+                    <div class="result" id="result">
+                        <p><i class="fas fa-info-circle"></i> Enter your data and click "Predict Flood Risk" to see results</p>
+                    </div>
+                
+                    <div class="tabs">
+                        <button class="tab-btn active" data-tab="map"><i class="fas fa-map-marked-alt"></i> Map View</button>
+                        <button class="tab-btn" data-tab="gauge"><i class="fas fa-tachometer-alt"></i> Gauge</button>
+                        <button class="tab-btn" data-tab="chart"><i class="fas fa-chart-pie"></i> Risk Factors</button>
+                        <button class="tab-btn" data-tab="history"><i class="fas fa-history"></i> Historical</button>
+                        <button class="tab-btn" data-tab="simulation"><i class="fas fa-flask"></i> Simulation</button>
+                    </div>
+                    
+                    <div class="tab-content">
+                        <div id="map-tab" class="tab-pane active">
+                            <h3><i class="fas fa-map-marker-alt"></i> Flood Risk Map</h3>
+                            <div class="map-controls">
+                                <div class="form-group similarity-slider">
+                                    <label for="similarity-threshold">Similarity Threshold: <span id="threshold-value">70%</span></label>
+                                    <input type="range" id="similarity-threshold" min="0" max="100" value="70" step="5">
+                                    <div class="similarity-buttons">
+                                        <button id="apply-threshold" class="small-btn">Apply</button>
+                                        <button id="reset-threshold" class="small-btn">Reset</button>
+                                    </div>
+                                </div>
+                                <div class="checkbox-container">
+                                    <label>
+                                        <input type="checkbox" id="show-similarity" checked>
+                                        Show similar locations
+                                    </label>
+                                </div>
+                            </div>
+                            <div id="map"></div>
+                            <div id="similar-locations-list" class="similar-locations-list"></div>
+                        </div>
+                        
+                        <div id="gauge-tab" class="tab-pane">
+                            <h3><i class="fas fa-tachometer-alt"></i> Risk Gauge</h3>
+                            <div class="gauge-container">
+                                <canvas id="gauge-chart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div id="chart-tab" class="tab-pane">
+                            <h3><i class="fas fa-chart-pie"></i> Risk Factors Breakdown</h3>
+                            <div class="chart-container">
+                                <canvas id="factors-chart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div id="history-tab" class="tab-pane">
+                            <h3><i class="fas fa-history"></i> Historical Comparison</h3>
+                            <div class="chart-container">
+                                <canvas id="history-chart"></canvas>
+                            </div>
+                            <div class="history-info" id="history-info">
+                                <p><i class="fas fa-info-circle"></i> Showing how current conditions compare to historical flood events</p>
+                            </div>
+                        </div>
+
+                        <div id="simulation-tab" class="tab-pane">
+                            <h3><i class="fas fa-flask"></i> Future Risk Simulation</h3>
+                            <div class="simulation-result" id="simulation-result">
+                                <p><i class="fas fa-info-circle"></i> Run a simulation to see future flood risk projections</p>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="simulation-chart"></canvas>
+                            </div>
+                            <div class="simulation-narrative" id="simulation-narrative"></div>
+                            <div class="simulation-factors" id="simulation-factors"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <footer>
+            <p>&copy; 2023 FloodSense | Powered by AI | <i class="fas fa-code"></i> with <i class="fas fa-heart"></i></p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html> 

@@ -1,0 +1,25 @@
+# Mac OS files
+.DS_Store
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables
+.env
+.env.local
+
+# Large data files
+flood.csv
+floodnet_model.h5
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp 
