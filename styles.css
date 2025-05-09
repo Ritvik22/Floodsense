@@ -726,10 +726,25 @@ footer {
     color: var(--primary-light);
     position: relative;
     transition: var(--transition);
+    text-decoration: none;
 }
 
 .creator:hover {
     color: var(--accent);
+}
+
+.creator::after {
+    content: '\f0e1';
+    font-family: 'Font Awesome 6 Brands';
+    font-size: 0.7em;
+    position: relative;
+    top: -0.5em;
+    margin-left: 0.2em;
+    opacity: 0.7;
+}
+
+.creator:hover::after {
+    opacity: 1;
 }
 
 /* Add custom map markers and animations */
