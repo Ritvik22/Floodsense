@@ -1552,24 +1552,32 @@ document.addEventListener('DOMContentLoaded', function() {
         const sum = rainfallFactor + waterLevelFactor + humidityFactor + temperatureFactor;
         const adjustmentFactor = 100 / sum;
         
-        // Define colors for the pie chart
+        // Define colors for the pie chart with more transparency for softer appearance
         const colors = [
-            'rgba(0, 112, 243, 0.8)',  // Rainfall - Blue
-            'rgba(0, 210, 255, 0.8)',  // Water Level - Light Blue
-            'rgba(102, 126, 234, 0.8)', // Humidity - Purple
-            'rgba(142, 68, 173, 0.8)'  // Temperature - Violet
+            'rgba(0, 112, 243, 0.75)',  // Rainfall - Blue
+            'rgba(0, 210, 255, 0.75)',  // Water Level - Light Blue
+            'rgba(102, 126, 234, 0.75)', // Humidity - Purple
+            'rgba(142, 68, 173, 0.75)'  // Temperature - Violet
         ];
         
         const hoverColors = [
-            'rgba(0, 112, 243, 1)',  // Rainfall - Blue
-            'rgba(0, 210, 255, 1)',  // Water Level - Light Blue
-            'rgba(102, 126, 234, 1)', // Humidity - Purple
-            'rgba(142, 68, 173, 1)'  // Temperature - Violet
+            'rgba(0, 112, 243, 0.9)',  // Rainfall - Blue
+            'rgba(0, 210, 255, 0.9)',  // Water Level - Light Blue
+            'rgba(102, 126, 234, 0.9)', // Humidity - Purple
+            'rgba(142, 68, 173, 0.9)'  // Temperature - Violet
         ];
+        
+        // Get the container dimensions
+        const chartContainer = document.querySelector('#chart-tab .chart-container');
+        const containerWidth = chartContainer.clientWidth;
+        
+        // Calculate ideal chart dimensions to prevent cutoff
+        // Use 60% of container width for the chart if legend is on the right
+        const chartWidth = Math.min(containerWidth * 0.6, 300);
         
         // Create new pie chart
         factorsChart = new Chart(ctx, {
-            type: 'pie',
+            type: 'doughnut', // Using doughnut for a softer look
             data: {
                 labels: ['Rainfall', 'Water Level', 'Humidity', 'Temperature'],
                 datasets: [{
@@ -1581,22 +1589,31 @@ document.addEventListener('DOMContentLoaded', function() {
                     ],
                     backgroundColor: colors,
                     hoverBackgroundColor: hoverColors,
-                    borderColor: 'rgba(28, 36, 56, 0.8)',
-                    borderWidth: 2,
+                    borderColor: 'rgba(28, 36, 56, 0.4)',
+                    borderWidth: 1,
+                    borderRadius: 6, // Add rounded corners to the segments
+                    hoverBorderWidth: 2,
+                    hoverOffset: 5, // Make segments move outward on hover
+                    offset: 3, // Small spacing between segments
+                    cutout: '25%' // Use a small cutout for a softer doughnut look
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                circumference: 360, // Full circle
                 plugins: {
                     legend: {
                         position: 'right',
+                        align: 'center',
                         labels: {
                             color: '#f0f2f5',
                             font: {
                                 size: 14
                             },
-                            padding: 20
+                            padding: 15,
+                            usePointStyle: true, // Use circular points in legend
+                            pointStyle: 'circle'
                         }
                     },
                     tooltip: {
@@ -1614,7 +1631,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         callbacks: {
                             label: function(context) {
                                 const label = context.label || '';
-                                const value = context.parsed || 0;
+                                const value = context.raw || 0;
                                 return `${label}: ${value}% of total risk`;
                             },
                             afterLabel: function(context) {
@@ -1632,27 +1649,26 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 layout: {
                     padding: {
-                        left: 10,
-                        right: 10,
-                        top: 0,
-                        bottom: 0
-                    }
-                },
-                elements: {
-                    arc: {
-                        borderWidth: 1,
-                        borderColor: 'rgba(28, 36, 56, 0.8)'
+                        left: 20,
+                        right: 20,
+                        top: 20,
+                        bottom: 20
                     }
                 },
                 animation: {
                     animateRotate: true,
-                    animateScale: true
+                    animateScale: true,
+                    duration: 1500, // Longer animation
+                    easing: 'easeOutCirc', // Circular easing for smoother animation
+                    delay: function(context) {
+                        // Staggered animation for each segment
+                        return context.dataIndex * 150;
+                    }
                 }
             }
         });
         
         // Add title above the chart
-        const chartContainer = document.querySelector('#chart-tab .chart-container');
         const titleElement = document.createElement('div');
         titleElement.className = 'chart-title';
         titleElement.textContent = 'Risk Factor Distribution';
@@ -1665,6 +1681,24 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Insert title at the top of container
         chartContainer.insertBefore(titleElement, chartContainer.firstChild);
+        
+        // Add a chart wrapper div for better centering
+        const chartWrapper = document.createElement('div');
+        chartWrapper.className = 'chart-wrapper';
+        
+        // Replace existing wrapper if any
+        const existingWrapper = chartContainer.querySelector('.chart-wrapper');
+        if (existingWrapper) {
+            existingWrapper.remove();
+        }
+        
+        // Move the canvas into the wrapper
+        const canvas = chartContainer.querySelector('canvas');
+        if (canvas) {
+            const canvasParent = canvas.parentNode;
+            chartWrapper.appendChild(canvas);
+            canvasParent.appendChild(chartWrapper);
+        }
     }
     
     // Function to update history chart
