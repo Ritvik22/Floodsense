@@ -56,9 +56,13 @@ def generate_sequences(data, seq_length):
 
 def simulate_and_narrate(features, years=20):
     """Simulate flood risk over time and provide narrative"""
-    # Define drift factors for climate change, urbanization, and deforestation
-    drift = np.array([0.03, 0.04, 0.015])
-    indices = [X.columns.get_loc(f) for f in ["ClimateChange", "Urbanization", "Deforestation"]]
+    # Improved drift factors based on scientific climate projections
+    # Different factors have different rates of change and interdependencies
+    base_drift = np.array([0.03, 0.04, 0.015, 0.02, 0.01])  # Climate, Urban, Deforest, Drainage, Dams
+    
+    # Get indices for all factors that can change over time
+    factor_names = ["ClimateChange", "Urbanization", "Deforestation", "DrainageSystems", "DamsQuality"]
+    indices = [X.columns.get_loc(f) for f in factor_names]
     
     # Create base feature set
     base = pd.DataFrame([X.mean()], columns=X.columns)
@@ -70,37 +74,172 @@ def simulate_and_narrate(features, years=20):
     
     # Simulate over years
     risks = []
+    feature_trajectories = {factor: [] for factor in factor_names}
+    
+    # Store initial values
+    for i, factor in enumerate(factor_names):
+        feature_trajectories[factor].append(x0[indices[i]] * 10)  # Unscale for storing
+    
     for t in range(years):
         xt = x0.copy()
-        # Apply drift to climate factors
-        for i, idx in enumerate(indices):
-            xt[idx] = np.clip(xt[idx] + t * drift[i], 0, 1)
         
-        # Use dummy model prediction if no real model is available
+        # First handle base drift for climate factors
+        for i, idx in enumerate(indices):
+            # Base drift modified by current value of the factor (logistic-like growth)
+            current_val = xt[idx]
+            # Calculate drift based on current value - nonlinear effects
+            drift_modifier = 1.0
+            
+            # Climate change accelerates over time (reinforcing loop)
+            if i == 0 and t > 10:  # ClimateChange factor after 10 years
+                drift_modifier = 1.2  # Accelerating climate effects
+            
+            # Urban growth slows as it approaches capacity
+            if i == 1 and current_val > 0.7:  # Urbanization factor approaching limits
+                drift_modifier = 0.7  # Slowing urban growth at high levels
+            
+            # Calculate effective drift
+            effective_drift = base_drift[i] * drift_modifier
+            
+            # Apply drift with constraints
+            if factor_names[i] in ["DrainageSystems", "DamsQuality"]:
+                # Infrastructure degrades over time unless maintained
+                xt[idx] = max(0, xt[idx] - (effective_drift * 0.5))
+            else:
+                xt[idx] = min(1.0, xt[idx] + effective_drift)
+        
+        # Now handle interactions between factors
+        
+        # Deforestation makes climate change worse
+        if xt[indices[2]] > 0.6:  # High deforestation
+            xt[indices[0]] = min(1.0, xt[indices[0]] + 0.01)  # Increases climate change
+            
+        # Good drainage systems reduce impact of urbanization
+        if xt[indices[3]] > 0.7:  # Good drainage systems
+            urban_impact = max(0, xt[indices[1]] - 0.2)  # Reduce effective urbanization
+        else:
+            urban_impact = xt[indices[1]] * 1.2  # Amplify urbanization effects with poor drainage
+            
+        # Dam quality affects water level management
+        dam_effectiveness = xt[indices[4]]
+        
+        # Use model or simplified approach for prediction
         if model is None:
-            # Simulate risk as base risk + time factor + random component
-            base_risk = (xt[0] * 0.4 + xt[1] * 0.3 + xt[2] * 0.2 + xt[3] * 0.1)
-            climate_impact = (xt[indices[0]] * 0.5 + xt[indices[1]] * 0.3 + xt[indices[2]] * 0.2)
-            risk = (base_risk * 0.6 + climate_impact * 0.4) * 10
-            risk = min(max(risk + np.random.normal(0, 0.2), 0), 10)
+            # Enhanced calculation considering interactions and nonlinear effects
+            
+            # Calculate base environmental risk
+            rain_impact = xt[0] * 0.4  # Rainfall
+            water_impact = xt[1] * 0.3  # Water level
+            
+            # Water level is affected by dam quality
+            water_impact = water_impact * (1.0 - (dam_effectiveness * 0.5))
+            
+            # Humidity impact increases with temperature
+            humidity_temp_interaction = xt[2] * xt[3] * 0.3  # Humidity and Temperature interact
+            
+            # Environmental base risk
+            env_risk = rain_impact + water_impact + humidity_temp_interaction
+            
+            # Climate factors with interactions
+            climate_impact = (xt[indices[0]] * 0.5 +  # Climate change
+                             urban_impact * 0.3 +     # Urbanization (modified by drainage)
+                             xt[indices[2]] * 0.2)    # Deforestation
+            
+            # Final risk calculation with nonlinear scaling
+            # Higher weights for environmental factors in early years,
+            # climate factors gain importance over time
+            env_weight = 0.8 - (t / years * 0.3)  # Decreases over time
+            climate_weight = 1.0 - env_weight
+            
+            # Calculate final risk score (0-10 scale)
+            risk = (env_risk * env_weight + climate_impact * climate_weight) * 10
+            
+            # Add small random variation representing unpredictable factors
+            random_variation = np.random.normal(0, 0.1)  # Reduced random variation for more stability
+            risk = min(max(risk + random_variation, 0), 10)
         else:
             # Reshape for CNN and LSTM inputs
-            x_cnn = xt.reshape(1, 5, 4, 1)  # Adjust dimensions as needed for your model
+            x_cnn = xt.reshape(1, 5, 4, 1)
             x_lstm = generate_sequences([xt], 5)
             # Get prediction from model
             risk = float(model.predict([x_cnn, x_lstm]).flatten()[0]) * 10
         
         risks.append(float(risk))
+        
+        # Store factor values for trajectory analysis
+        for i, factor in enumerate(factor_names):
+            feature_trajectories[factor].append(xt[indices[i]] * 10)  # Unscale for storing
     
-    # Determine trend for narrative
-    trend = "increasing rapidly" if risks[-1] - risks[0] > 5 else \
-            "moderately increasing" if risks[-1] - risks[0] > 2 else \
-            "stable" if abs(risks[-1] - risks[0]) <= 2 else \
-            "decreasing"
+    # Enhanced narrative generation with more detailed trend analysis
     
-    narrative = f"Over {years} years, flood risk is {trend}, starting at {risks[0]:.2f} and ending at {risks[-1]:.2f}."
+    # Overall trend
+    start_risk = risks[0]
+    end_risk = risks[-1]
+    risk_change = end_risk - start_risk
     
-    return risks, narrative
+    if risk_change > 5:
+        trend = "increasing rapidly"
+        severity = "severe"
+    elif risk_change > 2:
+        trend = "moderately increasing"
+        severity = "significant"
+    elif risk_change > 0.5:
+        trend = "slightly increasing"
+        severity = "mild"
+    elif abs(risk_change) <= 0.5:
+        trend = "relatively stable"
+        severity = "minimal"
+    elif risk_change > -2:
+        trend = "slightly decreasing"
+        severity = "mild improvement in"
+    else:
+        trend = "decreasing"
+        severity = "substantial improvement in"
+    
+    # Identify key factors driving the change
+    factor_changes = {f: feature_trajectories[f][-1] - feature_trajectories[f][0] for f in factor_names}
+    
+    # Sort factors by absolute change
+    driving_factors = sorted(factor_changes.items(), key=lambda x: abs(x[1]), reverse=True)
+    
+    # Format factor names for readability
+    factor_display = {
+        "ClimateChange": "climate change impacts",
+        "Urbanization": "urban development",
+        "Deforestation": "deforestation",
+        "DrainageSystems": "drainage infrastructure",
+        "DamsQuality": "dam and levee systems"
+    }
+    
+    # Generate detailed narrative
+    narrative = f"Over {years} years, flood risk is {trend}, from {start_risk:.2f} to {end_risk:.2f} on a 10-point scale."
+    
+    # Add details about key driving factors
+    if driving_factors:
+        top_factor, top_change = driving_factors[0]
+        direction = "increase" if top_change > 0 else "decrease"
+        narrative += f" The most significant driver is a {abs(top_change):.1f}-point {direction} in {factor_display[top_factor]}."
+    
+    # Add pattern details
+    if len(risks) > 5:
+        # Check for acceleration or plateaus
+        first_half_change = risks[len(risks)//2] - risks[0]
+        second_half_change = risks[-1] - risks[len(risks)//2]
+        
+        if abs(second_half_change) > abs(first_half_change) * 1.5:
+            narrative += f" The rate of change is accelerating in later years."
+        elif abs(first_half_change) > abs(second_half_change) * 1.5:
+            narrative += f" The rate of change is slowing in later years."
+    
+    # Add risk level context
+    if end_risk >= 7:
+        narrative += f" This scenario indicates a high-risk situation requiring significant preventive measures."
+    elif end_risk >= 4:
+        narrative += f" This represents a moderate risk level that should be monitored closely."
+    else:
+        narrative += f" This suggests a manageable risk level with proper planning."
+    
+    return risks, narrative, feature_trajectories
 
 
 @app.route('/')
@@ -210,7 +349,7 @@ def run_simulation():
             }
             
             # Run simulation with these features
-            risks, narrative = simulate_and_narrate(features, years)
+            risks, narrative, feature_trajectories = simulate_and_narrate(features, years)
             
             # Create a more detailed narrative based on scenario factors
             high_factors = [k for k, v in scenario_factors.items() if v >= 7]
@@ -227,7 +366,8 @@ def run_simulation():
                 "narrative": detailed_narrative,
                 "years": list(range(years)),
                 "features": features,
-                "scenario_factors": scenario_factors
+                "scenario_factors": scenario_factors,
+                "feature_trajectories": feature_trajectories
             })
             
         except Exception as e:
@@ -269,13 +409,14 @@ def run_simulation():
                 features[feat] = 1 + np.random.rand()
     
     # Run simulation
-    risks, narrative = simulate_and_narrate(features, years)
+    risks, narrative, feature_trajectories = simulate_and_narrate(features, years)
     
     return jsonify({
         "risks": risks,
         "narrative": narrative,
         "years": list(range(years)),
-        "features": features
+        "features": features,
+        "feature_trajectories": feature_trajectories
     })
 
 

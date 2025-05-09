@@ -710,10 +710,124 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         factorsHTML += '</ul>';
+        
+        // Add feature trajectories visualization if available
+        if (data.feature_trajectories) {
+            factorsHTML += '<h4>Factor Changes Over Time:</h4>';
+            factorsHTML += '<div class="factor-trajectories-container">';
+            factorsHTML += '<canvas id="factor-trajectories-chart" height="200"></canvas>';
+            factorsHTML += '</div>';
+        }
+        
         simulationFactors.innerHTML = factorsHTML;
         
         // Update simulation chart
         updateSimulationChart(data);
+        
+        // Render factor trajectories chart if available
+        if (data.feature_trajectories) {
+            renderFeatureTrajectories(data.feature_trajectories, data.years);
+        }
+    }
+    
+    // New function to render feature trajectories
+    function renderFeatureTrajectories(trajectories, years) {
+        const ctx = document.getElementById('factor-trajectories-chart').getContext('2d');
+        
+        // Create gradients for each line
+        const gradients = {
+            "ClimateChange": createGradient(ctx, [255, 0, 0]),      // Red
+            "Urbanization": createGradient(ctx, [0, 128, 255]),     // Blue
+            "Deforestation": createGradient(ctx, [0, 204, 102]),    // Green
+            "DrainageSystems": createGradient(ctx, [153, 51, 255]), // Purple
+            "DamsQuality": createGradient(ctx, [255, 153, 51])      // Orange
+        };
+        
+        // Prepare datasets
+        const datasets = Object.entries(trajectories).map(([factor, values], index) => {
+            return {
+                label: formatFactorName(factor),
+                data: values,
+                borderColor: gradients[factor],
+                backgroundColor: 'transparent',
+                borderWidth: 2,
+                tension: 0.4,
+                pointRadius: 2,
+                pointHoverRadius: 4
+            };
+        });
+        
+        // Create chart
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: years.map(year => `Year ${year}`),
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        min: 0,
+                        max: 10,
+                        title: {
+                            display: true,
+                            text: 'Factor Intensity (0-10)',
+                            font: { weight: 'bold' }
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Time Progression',
+                            font: { weight: 'bold' }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            boxWidth: 12,
+                            usePointStyle: true
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(12, 16, 27, 0.9)',
+                        padding: 10,
+                        cornerRadius: 6,
+                        usePointStyle: true
+                    }
+                },
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                }
+            }
+        });
+    }
+    
+    // Helper function to create gradient for chart lines
+    function createGradient(ctx, rgbColor) {
+        const gradient = ctx.createLinearGradient(0, 0, 400, 0);
+        const rgbString = `rgba(${rgbColor[0]}, ${rgbColor[1]}, ${rgbColor[2]}`;
+        gradient.addColorStop(0, `${rgbString}, 0.8)`);
+        gradient.addColorStop(1, `${rgbString}, 0.4)`);
+        return gradient;
+    }
+    
+    // Helper function to format factor names for display
+    function formatFactorName(factor) {
+        const names = {
+            "ClimateChange": "Climate Change",
+            "Urbanization": "Urban Development",
+            "Deforestation": "Deforestation",
+            "DrainageSystems": "Drainage Systems",
+            "DamsQuality": "Dam & Levee Quality"
+        };
+        return names[factor] || factor;
     }
     
     // Function to update simulation chart
