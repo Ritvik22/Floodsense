@@ -135,6 +135,7 @@ document.addEventListener('DOMContentLoaded', function() {
         initSimilarityControls();
         initScenarioSelection();
         initNavigation();
+        initLocationSearch();
         
         // Set default values for form inputs
         document.getElementById('rainfall').value = '50';
@@ -2094,5 +2095,289 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         return baseColor;
+    }
+    
+    // Weather API Configuration
+    const WEATHER_API_KEY = 'YOUR_OPENWEATHERMAP_API_KEY'; // Replace with your OpenWeatherMap API key
+    const GEOCODING_API_KEY = 'YOUR_GEOCODING_API_KEY'; // Replace with your API key for geocoding service
+    
+    // Function to initialize location search
+    function initLocationSearch() {
+        const searchInput = document.getElementById('location-search');
+        const searchBtn = document.getElementById('search-btn');
+        const searchResults = document.getElementById('search-results');
+        const useWeatherBtn = document.getElementById('use-weather-data');
+        
+        // Set up listeners for search input and button
+        searchBtn.addEventListener('click', function(event) {
+            event.preventDefault();
+            searchLocation(searchInput.value);
+        });
+        
+        searchInput.addEventListener('keyup', function(event) {
+            if (event.key === 'Enter') {
+                searchLocation(searchInput.value);
+            }
+        });
+        
+        // Add listener for using the weather data
+        useWeatherBtn.addEventListener('click', function() {
+            const rainfall = document.getElementById('weather-rainfall').getAttribute('data-value') || 0;
+            const waterLevel = document.getElementById('weather-water').getAttribute('data-value') || 0;
+            const humidity = document.getElementById('weather-humidity').getAttribute('data-value') || 0;
+            const temperature = document.getElementById('weather-temp').getAttribute('data-value') || 0;
+            
+            // Update form inputs with the weather data
+            document.getElementById('rainfall').value = rainfall;
+            document.getElementById('water-level').value = waterLevel;
+            document.getElementById('humidity').value = humidity;
+            document.getElementById('temperature').value = temperature;
+            
+            // Highlight the updated fields
+            [
+                document.getElementById('rainfall'),
+                document.getElementById('water-level'),
+                document.getElementById('humidity'),
+                document.getElementById('temperature')
+            ].forEach(input => {
+                input.classList.add('input-updated');
+                setTimeout(() => {
+                    input.classList.remove('input-updated');
+                }, 2000);
+            });
+        });
+    }
+    
+    // Function to search for a location
+    function searchLocation(query) {
+        if (!query.trim()) return;
+        
+        // Show loading state
+        const searchResults = document.getElementById('search-results');
+        searchResults.innerHTML = '<div class="search-loading"><div class="spinner"></div><p>Searching locations...</p></div>';
+        searchResults.classList.add('active');
+        
+        // In a real implementation, this would call a geocoding API
+        // For demo purposes, we'll simulate with some mock data
+        simulateGeocodingSearch(query)
+            .then(results => {
+                if (results.length === 0) {
+                    searchResults.innerHTML = '<div class="search-no-results">No locations found. Try a different search term.</div>';
+                    return;
+                }
+                
+                // Display search results
+                searchResults.innerHTML = '';
+                results.forEach(result => {
+                    const resultItem = document.createElement('div');
+                    resultItem.className = 'search-result-item';
+                    resultItem.innerHTML = `
+                        <div class="search-result-name">${result.name}</div>
+                        <div class="search-result-address">${result.address}</div>
+                    `;
+                    
+                    // Add click handler to select this location
+                    resultItem.addEventListener('click', () => {
+                        selectLocation(result);
+                        searchResults.classList.remove('active');
+                    });
+                    
+                    searchResults.appendChild(resultItem);
+                });
+            })
+            .catch(error => {
+                console.error('Error searching for location:', error);
+                searchResults.innerHTML = '<div class="search-error">An error occurred while searching. Please try again.</div>';
+            });
+    }
+    
+    // Function to select a location and get weather data
+    function selectLocation(location) {
+        console.log('Selected location:', location);
+        
+        // Show loading state in the weather preview
+        const weatherPreview = document.getElementById('weather-preview');
+        weatherPreview.classList.remove('hidden');
+        weatherPreview.innerHTML = `
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Retrieving weather data for ${location.name}...</p>
+            </div>
+        `;
+        
+        // In a real implementation, this would call a weather API
+        // For demo purposes, we'll simulate with some realistic data
+        simulateWeatherData(location)
+            .then(weatherData => {
+                // Update the weather preview with the retrieved data
+                document.getElementById('weather-location-text').textContent = location.name;
+                
+                // Update weather values with proper units
+                document.getElementById('weather-rainfall').textContent = `${weatherData.rainfall} mm`;
+                document.getElementById('weather-rainfall').setAttribute('data-value', weatherData.rainfall);
+                
+                document.getElementById('weather-water').textContent = `${weatherData.waterLevel} m`;
+                document.getElementById('weather-water').setAttribute('data-value', weatherData.waterLevel);
+                
+                document.getElementById('weather-humidity').textContent = `${weatherData.humidity}%`;
+                document.getElementById('weather-humidity').setAttribute('data-value', weatherData.humidity);
+                
+                document.getElementById('weather-temp').textContent = `${weatherData.temperature}°C`;
+                document.getElementById('weather-temp').setAttribute('data-value', weatherData.temperature);
+                
+                // Update timestamp
+                const now = new Date();
+                document.getElementById('weather-timestamp').innerHTML = `
+                    <i class="fas fa-clock"></i> ${now.toLocaleTimeString()}
+                `;
+                
+                // Show the weather preview with data
+                weatherPreview.classList.remove('hidden');
+            })
+            .catch(error => {
+                console.error('Error getting weather data:', error);
+                weatherPreview.innerHTML = `
+                    <div class="error">
+                        <p>Error retrieving weather data. Please try again.</p>
+                    </div>
+                `;
+            });
+    }
+    
+    // Simulated geocoding search for demonstration
+    function simulateGeocodingSearch(query) {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                // Mock data for demonstration
+                const mockLocations = [
+                    {
+                        id: 1,
+                        name: "New Orleans",
+                        address: "New Orleans, LA, USA",
+                        lat: 29.9511,
+                        lng: -90.0715
+                    },
+                    {
+                        id: 2,
+                        name: "Houston",
+                        address: "Houston, TX, USA",
+                        lat: 29.7604,
+                        lng: -95.3698
+                    },
+                    {
+                        id: 3,
+                        name: "Miami",
+                        address: "Miami, FL, USA",
+                        lat: 25.7617,
+                        lng: -80.1918
+                    },
+                    {
+                        id: 4,
+                        name: "Sacramento",
+                        address: "Sacramento, CA, USA",
+                        lat: 38.5816,
+                        lng: -121.4944
+                    },
+                    {
+                        id: 5,
+                        name: "New York",
+                        address: "New York, NY, USA",
+                        lat: 40.7128,
+                        lng: -74.0060
+                    }
+                ];
+                
+                // Filter locations based on the query
+                const filteredLocations = mockLocations.filter(location => {
+                    return location.name.toLowerCase().includes(query.toLowerCase()) ||
+                           location.address.toLowerCase().includes(query.toLowerCase());
+                });
+                
+                resolve(filteredLocations);
+            }, 500); // Simulate network delay
+        });
+    }
+    
+    // Simulated weather data retrieval for demonstration
+    function simulateWeatherData(location) {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                // Generate realistic weather data based on the location
+                // In a real implementation, this would come from a weather API
+                let weatherData = {
+                    rainfall: 0,
+                    waterLevel: 0,
+                    humidity: 0,
+                    temperature: 0
+                };
+                
+                // Different base data depending on location
+                switch(location.id) {
+                    case 1: // New Orleans
+                        weatherData = {
+                            rainfall: Math.round(Math.random() * 40 + 80), // 80-120mm
+                            waterLevel: (Math.random() * 2 + 3).toFixed(1), // 3-5m
+                            humidity: Math.round(Math.random() * 15 + 75), // 75-90%
+                            temperature: Math.round(Math.random() * 8 + 24) // 24-32°C
+                        };
+                        break;
+                        
+                    case 2: // Houston
+                        weatherData = {
+                            rainfall: Math.round(Math.random() * 60 + 40), // 40-100mm
+                            waterLevel: (Math.random() * 1.5 + 2).toFixed(1), // 2-3.5m
+                            humidity: Math.round(Math.random() * 20 + 60), // 60-80%
+                            temperature: Math.round(Math.random() * 10 + 22) // 22-32°C
+                        };
+                        break;
+                        
+                    case 3: // Miami
+                        weatherData = {
+                            rainfall: Math.round(Math.random() * 50 + 30), // 30-80mm
+                            waterLevel: (Math.random() * 1.2 + 1.8).toFixed(1), // 1.8-3m
+                            humidity: Math.round(Math.random() * 15 + 75), // 75-90%
+                            temperature: Math.round(Math.random() * 6 + 26) // 26-32°C
+                        };
+                        break;
+                        
+                    case 4: // Sacramento
+                        weatherData = {
+                            rainfall: Math.round(Math.random() * 30 + 10), // 10-40mm
+                            waterLevel: (Math.random() * 1 + 1.5).toFixed(1), // 1.5-2.5m
+                            humidity: Math.round(Math.random() * 25 + 40), // 40-65%
+                            temperature: Math.round(Math.random() * 15 + 15) // 15-30°C
+                        };
+                        break;
+                        
+                    case 5: // New York
+                        weatherData = {
+                            rainfall: Math.round(Math.random() * 40 + 20), // 20-60mm
+                            waterLevel: (Math.random() * 1.5 + 1).toFixed(1), // 1-2.5m
+                            humidity: Math.round(Math.random() * 30 + 50), // 50-80%
+                            temperature: Math.round(Math.random() * 20 + 5) // 5-25°C
+                        };
+                        break;
+                        
+                    default:
+                        // Default random data for other locations
+                        weatherData = {
+                            rainfall: Math.round(Math.random() * 80 + 20), // 20-100mm
+                            waterLevel: (Math.random() * 3 + 1).toFixed(1), // 1-4m
+                            humidity: Math.round(Math.random() * 50 + 30), // 30-80%
+                            temperature: Math.round(Math.random() * 30 + 5) // 5-35°C
+                        };
+                }
+                
+                resolve(weatherData);
+            }, 800); // Simulate network delay
+        });
+    }
+    
+    // Function to get weather icon based on rainfall intensity
+    function getWeatherIcon(rainfall) {
+        if (rainfall > 80) return 'fas fa-cloud-showers-heavy'; // Heavy rain
+        if (rainfall > 40) return 'fas fa-cloud-rain'; // Moderate rain
+        if (rainfall > 10) return 'fas fa-cloud-sun-rain'; // Light rain
+        return 'fas fa-cloud'; // Cloudy
     }
 }); 
