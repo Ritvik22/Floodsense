@@ -43,154 +43,161 @@
                         <p class="section-description">Select a scenario or enter custom environmental parameters to predict flood risk</p>
                     </div>
                     
-                    <div class="card scenario-selection">
-                        <div class="card-header">
-                            <h3><i class="fas fa-layer-group"></i> Quick Scenarios</h3>
-                            <p class="card-description">Choose a predefined scenario to automatically populate the form</p>
+                    <div class="card scenarios">
+                        <div class="card-header collapsible" id="scenarios-header">
+                            <h3><i class="fas fa-bolt"></i> Predefined Scenarios</h3>
+                            <p class="card-description">Select a scenario to quickly populate environmental data</p>
+                            <i class="fas fa-chevron-down collapse-icon"></i>
                         </div>
-                        <div class="scenario-cards">
-                            <div class="scenario-card" data-scenario="heavy-rain">
-                                <div class="scenario-icon"><i class="fas fa-cloud-showers-heavy"></i></div>
-                                <h4>Heavy Rain</h4>
-                                <div class="scenario-data">
-                                    <span>Rainfall: 150mm</span>
-                                    <span>Water Level: 4.5m</span>
-                                    <span>Humidity: 90%</span>
-                                    <span>Temp: 18°C</span>
+                        
+                        <div class="card-content collapsible-content">
+                            <div class="scenario-cards">
+                                <div class="scenario-card" data-scenario="heavy-rain">
+                                    <div class="scenario-icon"><i class="fas fa-cloud-showers-heavy"></i></div>
+                                    <h4>Heavy Rain</h4>
+                                    <div class="scenario-data">
+                                        <span>Rainfall: 150mm</span>
+                                        <span>Water Level: 4.5m</span>
+                                        <span>Humidity: 90%</span>
+                                        <span>Temp: 18°C</span>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="scenario-card" data-scenario="coastal-flooding">
-                                <div class="scenario-icon"><i class="fas fa-water"></i></div>
-                                <h4>Coastal Flooding</h4>
-                                <div class="scenario-data">
-                                    <span>Rainfall: 80mm</span>
-                                    <span>Water Level: 5.2m</span>
-                                    <span>Humidity: 85%</span>
-                                    <span>Temp: 22°C</span>
+                                <div class="scenario-card" data-scenario="coastal-flooding">
+                                    <div class="scenario-icon"><i class="fas fa-water"></i></div>
+                                    <h4>Coastal Flooding</h4>
+                                    <div class="scenario-data">
+                                        <span>Rainfall: 80mm</span>
+                                        <span>Water Level: 5.2m</span>
+                                        <span>Humidity: 85%</span>
+                                        <span>Temp: 22°C</span>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="scenario-card" data-scenario="spring-melt">
-                                <div class="scenario-icon"><i class="fas fa-snowflake"></i></div>
-                                <h4>Spring Melt</h4>
-                                <div class="scenario-data">
-                                    <span>Rainfall: 50mm</span>
-                                    <span>Water Level: 3.8m</span>
-                                    <span>Humidity: 70%</span>
-                                    <span>Temp: 8°C</span>
+                                <div class="scenario-card" data-scenario="spring-melt">
+                                    <div class="scenario-icon"><i class="fas fa-snowflake"></i></div>
+                                    <h4>Spring Melt</h4>
+                                    <div class="scenario-data">
+                                        <span>Rainfall: 50mm</span>
+                                        <span>Water Level: 3.8m</span>
+                                        <span>Humidity: 70%</span>
+                                        <span>Temp: 8°C</span>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="scenario-card" data-scenario="moderate-conditions">
-                                <div class="scenario-icon"><i class="fas fa-cloud-sun-rain"></i></div>
-                                <h4>Moderate</h4>
-                                <div class="scenario-data">
-                                    <span>Rainfall: 60mm</span>
-                                    <span>Water Level: 2.5m</span>
-                                    <span>Humidity: 65%</span>
-                                    <span>Temp: 15°C</span>
+                                <div class="scenario-card" data-scenario="moderate-conditions">
+                                    <div class="scenario-icon"><i class="fas fa-cloud-sun-rain"></i></div>
+                                    <h4>Moderate</h4>
+                                    <div class="scenario-data">
+                                        <span>Rainfall: 60mm</span>
+                                        <span>Water Level: 2.5m</span>
+                                        <span>Humidity: 65%</span>
+                                        <span>Temp: 15°C</span>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="scenario-card" data-scenario="drought-conditions">
-                                <div class="scenario-icon"><i class="fas fa-sun"></i></div>
-                                <h4>Drought</h4>
-                                <div class="scenario-data">
-                                    <span>Rainfall: 5mm</span>
-                                    <span>Water Level: 1.0m</span>
-                                    <span>Humidity: 30%</span>
-                                    <span>Temp: 32°C</span>
+                                <div class="scenario-card" data-scenario="drought-conditions">
+                                    <div class="scenario-icon"><i class="fas fa-sun"></i></div>
+                                    <h4>Drought</h4>
+                                    <div class="scenario-data">
+                                        <span>Rainfall: 5mm</span>
+                                        <span>Water Level: 1.0m</span>
+                                        <span>Humidity: 30%</span>
+                                        <span>Temp: 32°C</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                     
                     <div class="card custom-parameters">
-                        <div class="card-header">
+                        <div class="card-header collapsible" id="parameters-header">
                             <h3><i class="fas fa-edit"></i> Custom Parameters</h3>
                             <p class="card-description">Enter specific environmental data for your prediction</p>
+                            <i class="fas fa-chevron-down collapse-icon"></i>
                         </div>
                         
-                        <div class="location-search">
-                            <h4><i class="fas fa-search-location"></i> Search by Location</h4>
-                            <p class="card-description">Find a location to automatically retrieve current weather data</p>
-                            <div class="search-container">
-                                <div class="form-group">
-                                    <input type="text" id="location-search" placeholder="Enter city name or address..." class="search-input">
-                                    <button id="search-btn" class="search-btn"><i class="fas fa-search"></i></button>
-                                </div>
-                                <div id="search-results" class="search-results"></div>
-                            </div>
-                            <div id="weather-info" class="weather-info">
-                                <div class="weather-preview hidden" id="weather-preview">
-                                    <div class="weather-header">
-                                        <div class="weather-location">
-                                            <i class="fas fa-map-marker-alt"></i>
-                                            <span id="weather-location-text">-</span>
-                                        </div>
-                                        <div class="weather-timestamp" id="weather-timestamp">
-                                            <i class="fas fa-clock"></i> Just now
-                                        </div>
+                        <div class="card-content collapsible-content">
+                            <div class="location-search">
+                                <h4><i class="fas fa-search-location"></i> Search by Location</h4>
+                                <p class="card-description">Find a location to automatically retrieve current weather data</p>
+                                <div class="search-container">
+                                    <div class="form-group">
+                                        <input type="text" id="location-search" placeholder="Enter city name or address..." class="search-input">
+                                        <button id="search-btn" class="search-btn"><i class="fas fa-search"></i></button>
                                     </div>
-                                    <div class="weather-data">
-                                        <div class="weather-item">
-                                            <div class="weather-icon"><i class="fas fa-cloud-rain"></i></div>
-                                            <div class="weather-label">Rainfall</div>
-                                            <div class="weather-value" id="weather-rainfall">-</div>
+                                    <div id="search-results" class="search-results"></div>
+                                </div>
+                                <div id="weather-info" class="weather-info">
+                                    <div class="weather-preview hidden" id="weather-preview">
+                                        <div class="weather-header">
+                                            <div class="weather-location">
+                                                <i class="fas fa-map-marker-alt"></i>
+                                                <span id="weather-location-text">-</span>
+                                            </div>
+                                            <div class="weather-timestamp" id="weather-timestamp">
+                                                <i class="fas fa-clock"></i> Just now
+                                            </div>
                                         </div>
-                                        <div class="weather-item">
-                                            <div class="weather-icon"><i class="fas fa-water"></i></div>
-                                            <div class="weather-label">Water Level</div>
-                                            <div class="weather-value" id="weather-water">-</div>
+                                        <div class="weather-data">
+                                            <div class="weather-item">
+                                                <div class="weather-icon"><i class="fas fa-cloud-rain"></i></div>
+                                                <div class="weather-label">Rainfall</div>
+                                                <div class="weather-value" id="weather-rainfall">-</div>
+                                            </div>
+                                            <div class="weather-item">
+                                                <div class="weather-icon"><i class="fas fa-water"></i></div>
+                                                <div class="weather-label">Water Level</div>
+                                                <div class="weather-value" id="weather-water">-</div>
+                                            </div>
+                                            <div class="weather-item">
+                                                <div class="weather-icon"><i class="fas fa-tint"></i></div>
+                                                <div class="weather-label">Humidity</div>
+                                                <div class="weather-value" id="weather-humidity">-</div>
+                                            </div>
+                                            <div class="weather-item">
+                                                <div class="weather-icon"><i class="fas fa-temperature-high"></i></div>
+                                                <div class="weather-label">Temperature</div>
+                                                <div class="weather-value" id="weather-temp">-</div>
+                                            </div>
                                         </div>
-                                        <div class="weather-item">
-                                            <div class="weather-icon"><i class="fas fa-tint"></i></div>
-                                            <div class="weather-label">Humidity</div>
-                                            <div class="weather-value" id="weather-humidity">-</div>
-                                        </div>
-                                        <div class="weather-item">
-                                            <div class="weather-icon"><i class="fas fa-temperature-high"></i></div>
-                                            <div class="weather-label">Temperature</div>
-                                            <div class="weather-value" id="weather-temp">-</div>
-                                        </div>
+                                        <button id="use-weather-data" class="use-weather-btn">
+                                            <i class="fas fa-file-import"></i> Use This Data
+                                        </button>
                                     </div>
-                                    <button id="use-weather-data" class="use-weather-btn">
-                                        <i class="fas fa-file-import"></i> Use This Data
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <form id="prediction-form">
-                            <div class="form-grid">
-                                <div class="form-group">
-                                    <label for="rainfall"><i class="fas fa-cloud-rain"></i> Rainfall (mm):</label>
-                                    <input type="number" id="rainfall" name="rainfall" step="0.01" required placeholder="Enter rainfall amount">
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="water-level"><i class="fas fa-water"></i> Water Level (m):</label>
-                                    <input type="number" id="water-level" name="water-level" step="0.01" required placeholder="Enter water level">
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="humidity"><i class="fas fa-tint"></i> Humidity (%):</label>
-                                    <input type="number" id="humidity" name="humidity" min="0" max="100" required placeholder="Enter humidity percentage">
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="temperature"><i class="fas fa-temperature-high"></i> Temperature (°C):</label>
-                                    <input type="number" id="temperature" name="temperature" step="0.1" required placeholder="Enter temperature">
                                 </div>
                             </div>
                             
-                            <div class="model-selection">
-                                <label for="model-type"><i class="fas fa-brain"></i> Prediction Model:</label>
-                                <select id="model-type" name="model-type">
-                                    <option value="simplified">Simplified Rule-based Model</option>
-                                    <option value="ml-model">Machine Learning Model</option>
-                                </select>
-                            </div>
-                            
-                            <button type="submit" class="submit-btn"><i class="fas fa-bolt"></i> Predict Flood Risk</button>
-                        </form>
+                            <form id="prediction-form">
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label for="rainfall"><i class="fas fa-cloud-rain"></i> Rainfall (mm):</label>
+                                        <input type="number" id="rainfall" name="rainfall" step="0.01" required placeholder="Enter rainfall amount">
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="water-level"><i class="fas fa-water"></i> Water Level (m):</label>
+                                        <input type="number" id="water-level" name="water-level" step="0.01" required placeholder="Enter water level">
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="humidity"><i class="fas fa-tint"></i> Humidity (%):</label>
+                                        <input type="number" id="humidity" name="humidity" min="0" max="100" required placeholder="Enter humidity percentage">
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="temperature"><i class="fas fa-temperature-high"></i> Temperature (°C):</label>
+                                        <input type="number" id="temperature" name="temperature" step="0.1" required placeholder="Enter temperature">
+                                    </div>
+                                </div>
+                                
+                                <div class="model-selection">
+                                    <label for="model-type"><i class="fas fa-brain"></i> Prediction Model:</label>
+                                    <select id="model-type" name="model-type">
+                                        <option value="simplified">Simplified Rule-based Model</option>
+                                        <option value="ml-model">Machine Learning Model</option>
+                                    </select>
+                                </div>
+                                
+                                <button type="submit" class="submit-btn"><i class="fas fa-bolt"></i> Predict Flood Risk</button>
+                            </form>
+                        </div>
                     </div>
                 </div>
 

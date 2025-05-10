@@ -1657,4 +1657,89 @@ footer {
 .use-weather-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 50, 115, 0.3);
+}
+
+/* Collapsible Cards */
+.card-header.collapsible {
+    cursor: pointer;
+    position: relative;
+    transition: all 0.3s;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    border-radius: 10px;
+    z-index: 10;
+}
+
+.card-header.collapsible:hover {
+    background-color: rgba(0, 112, 243, 0.05);
+}
+
+.collapse-icon {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    transition: transform 0.3s ease;
+    color: #0070f3;
+    font-size: 18px;
+}
+
+.card-header.collapsible.active .collapse-icon {
+    transform: translateY(-50%) rotate(180deg);
+}
+
+.collapsible-content {
+    max-height: 2000px; /* Increased to ensure all content fits */
+    overflow: hidden;
+    transition: max-height 0.6s ease-in-out, padding 0.3s ease;
+}
+
+.collapsible-content.collapsed {
+    max-height: 0;
+    overflow: hidden;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-top: none;
+}
+
+/* Add better visual distinction for collapsible headers */
+.card-header.collapsible {
+    margin-bottom: 0;
+    padding: 20px 25px;
+}
+
+.card-header.collapsible.active {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid rgba(0, 112, 243, 0.2);
+    margin-bottom: 10px;
+    background-color: rgba(0, 112, 243, 0.03);
+}
+
+/* Ensure the prediction button is visible when collapsed */
+.submit-btn {
+    margin-top: 20px;
+    position: relative;
+    z-index: 10;
+}
+
+/* Add subtle animation to collapse icons */
+@keyframes pulse {
+    0% { transform: translateY(-50%) scale(1); }
+    50% { transform: translateY(-50%) scale(1.2); }
+    100% { transform: translateY(-50%) scale(1); }
+}
+
+.card-header.collapsible:hover .collapse-icon {
+    animation: pulse 1s infinite;
+}
+
+/* Adjust card spacing */
+.card {
+    margin-bottom: 20px;
+}
+
+/* Adjust card content padding */
+.card-content {
+    padding: 20px;
 } 
