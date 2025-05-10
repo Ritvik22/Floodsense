@@ -4,6 +4,8 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.model_selection import train_test_split
 import json
 import os
 # Import the flood scenario model
@@ -12,14 +14,58 @@ from flood_scenario_model import FloodScenarioModel
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
-# Load the model if it exists
+# Load the training dataset
+training_data_path = 'Generated_Flood_Risk_Training_Dataset.csv'
+if os.path.exists(training_data_path):
+    try:
+        flood_training_data = pd.read_csv(training_data_path)
+        print(f"Training dataset loaded successfully with {len(flood_training_data)} records")
+    except Exception as e:
+        flood_training_data = None
+        print(f"Error loading training dataset: {e}")
+else:
+    flood_training_data = None
+    print(f"Training dataset not found at {training_data_path}")
+
+# Create and train a risk prediction model based on the dataset
+flood_risk_model = None
+if flood_training_data is not None:
+    try:
+        # Extract features and target from the dataset
+        X_train = flood_training_data[['Rainfall (mm)', 'Water Level (m)', 'Humidity (%)', 'Temperature (°C)']].values
+        
+        # Parse the labels correctly - they're in string format like "[1, 2, 3, 4, 5]"
+        y_train = flood_training_data['labels'].apply(lambda x: sum(eval(x))/len(eval(x))).values
+        
+        # Train a model
+        flood_risk_model = GradientBoostingRegressor(
+            n_estimators=100, 
+            learning_rate=0.1, 
+            max_depth=4,
+            random_state=42
+        )
+        flood_risk_model.fit(X_train, y_train)
+        print("Flood risk prediction model trained successfully")
+        
+        # Print feature importances
+        feature_names = ['Rainfall', 'Water Level', 'Humidity', 'Temperature']
+        importances = flood_risk_model.feature_importances_
+        for i, importance in enumerate(importances):
+            print(f"Feature {feature_names[i]}: {importance:.4f}")
+            
+    except Exception as e:
+        print(f"Error training flood risk model: {e}")
+        import traceback
+        traceback.print_exc()
+
+# Load the neural network model if it exists
 model = None
 if os.path.exists('floodnet_model.h5'):
     try:
         model = tf.keras.models.load_model('floodnet_model.h5')
-        print("Model loaded successfully")
+        print("Neural network model loaded successfully")
     except Exception as e:
-        print(f"Error loading model: {e}")
+        print(f"Error loading neural network model: {e}")
 
 # Initialize the scenario model
 try:
@@ -29,23 +75,52 @@ except Exception as e:
     scenario_model = None
     print(f"Error loading scenario model: {e}")
 
-# Create a dummy scaler and dataset for simulation
-# In a real scenario, these would be loaded from saved files
-class DummyScaler:
+# Create a proper scaler for standardizing inputs
+# This will be used for both prediction and simulation
+class FeatureScaler:
+    def __init__(self):
+        self.scaler = StandardScaler()
+        # Train the scaler if we have training data
+        if flood_training_data is not None:
+            X = flood_training_data[['Rainfall (mm)', 'Water Level (m)', 'Humidity (%)', 'Temperature (°C)']].values
+            self.scaler.fit(X)
+    
     def transform(self, X):
-        # Simple normalization between 0 and 1
-        return np.array(X) / 10.0
-
+        # If we don't have a trained scaler, do simple normalization
+        if hasattr(self.scaler, 'mean_'):
+            return self.scaler.transform(X)
+        else:
+            # Fallback normalization
+            return np.array(X) / np.array([200.0, 10.0, 100.0, 40.0])
+    
     def inverse_transform(self, X):
-        return X * 10.0
+        if hasattr(self.scaler, 'mean_'):
+            return self.scaler.inverse_transform(X)
+        else:
+            return X * np.array([200.0, 10.0, 100.0, 40.0])
 
-scaler = DummyScaler()
+scaler = FeatureScaler()
 
-# Create dummy data for simulation
+# Create dataset for simulation with typical values
 columns = ["Rainfall", "WaterLevel", "Humidity", "Temperature", 
            "ClimateChange", "Urbanization", "Deforestation", 
            "DrainageSystems", "DamsQuality"]
-X = pd.DataFrame(np.random.rand(100, len(columns)) * 10, columns=columns)
+
+# Use training data to initialize if available, otherwise use defaults
+if flood_training_data is not None:
+    X = pd.DataFrame({
+        "Rainfall": flood_training_data['Rainfall (mm)'],
+        "WaterLevel": flood_training_data['Water Level (m)'], 
+        "Humidity": flood_training_data['Humidity (%)'],
+        "Temperature": flood_training_data['Temperature (°C)'],
+        "ClimateChange": [5.0] * len(flood_training_data),
+        "Urbanization": [5.0] * len(flood_training_data),
+        "Deforestation": [5.0] * len(flood_training_data),
+        "DrainageSystems": [5.0] * len(flood_training_data),
+        "DamsQuality": [5.0] * len(flood_training_data)
+    })
+else:
+    X = pd.DataFrame(np.random.rand(100, len(columns)) * 10, columns=columns)
 
 
 def generate_sequences(data, seq_length):
@@ -70,7 +145,10 @@ def simulate_and_narrate(features, years=20):
         base[k] = features[k]
     
     # Initialize with scaled features
-    x0 = scaler.transform(base).flatten()
+    x0 = scaler.transform(base[["Rainfall", "WaterLevel", "Humidity", "Temperature"]].values).flatten()
+    
+    # Add the climate factors
+    x0 = np.concatenate([x0, [base[factor].values[0] / 10.0 for factor in factor_names]])
     
     # Simulate over years
     risks = []
@@ -78,15 +156,21 @@ def simulate_and_narrate(features, years=20):
     
     # Store initial values
     for i, factor in enumerate(factor_names):
-        feature_trajectories[factor].append(x0[indices[i]] * 10)  # Unscale for storing
+        feature_trajectories[factor].append(base[factor].values[0])
     
     for t in range(years):
         xt = x0.copy()
         
         # First handle base drift for climate factors
         for i, idx in enumerate(indices):
+            # The indices need to be offset by 4 (number of environmental factors)
+            idx_adjusted = idx
+            if idx_adjusted >= 4:
+                # Adjust for the fact that we're using a flattened feature vector
+                idx_adjusted = i + 4
+                
             # Base drift modified by current value of the factor (logistic-like growth)
-            current_val = xt[idx]
+            current_val = xt[idx_adjusted]
             # Calculate drift based on current value - nonlinear effects
             drift_modifier = 1.0
             
@@ -104,27 +188,42 @@ def simulate_and_narrate(features, years=20):
             # Apply drift with constraints
             if factor_names[i] in ["DrainageSystems", "DamsQuality"]:
                 # Infrastructure degrades over time unless maintained
-                xt[idx] = max(0, xt[idx] - (effective_drift * 0.5))
+                xt[idx_adjusted] = max(0, xt[idx_adjusted] - (effective_drift * 0.5))
             else:
-                xt[idx] = min(1.0, xt[idx] + effective_drift)
+                xt[idx_adjusted] = min(1.0, xt[idx_adjusted] + effective_drift)
         
         # Now handle interactions between factors
         
         # Deforestation makes climate change worse
-        if xt[indices[2]] > 0.6:  # High deforestation
-            xt[indices[0]] = min(1.0, xt[indices[0]] + 0.01)  # Increases climate change
+        if xt[6] > 0.6:  # High deforestation
+            xt[4] = min(1.0, xt[4] + 0.01)  # Increases climate change
             
         # Good drainage systems reduce impact of urbanization
-        if xt[indices[3]] > 0.7:  # Good drainage systems
-            urban_impact = max(0, xt[indices[1]] - 0.2)  # Reduce effective urbanization
+        if xt[7] > 0.7:  # Good drainage systems
+            urban_impact = max(0, xt[5] - 0.2)  # Reduce effective urbanization
         else:
-            urban_impact = xt[indices[1]] * 1.2  # Amplify urbanization effects with poor drainage
+            urban_impact = xt[5] * 1.2  # Amplify urbanization effects with poor drainage
             
         # Dam quality affects water level management
-        dam_effectiveness = xt[indices[4]]
+        dam_effectiveness = xt[8]
         
-        # Use model or simplified approach for prediction
-        if model is None:
+        # Prepare environmental features for prediction model
+        env_features = xt[:4].reshape(1, -1)
+        # Inverse transform to get original scale for the trained model
+        env_features_orig = scaler.inverse_transform(env_features)
+        
+        # Use the dataset-trained model or neural network model or simplified approach
+        if flood_risk_model is not None:
+            # Use our trained model from the dataset
+            risk = float(flood_risk_model.predict(env_features_orig).flatten()[0])
+            # Scale to 0-10 range
+            risk = min(max(risk, 0), 10)
+        elif model is not None:
+            # Use neural network model
+            x_cnn = xt.reshape(1, 3, 3, 1)  # Reshape for CNN input
+            x_lstm = generate_sequences([xt], 5)  # Generate sequences for LSTM
+            risk = float(model.predict([x_cnn, x_lstm]).flatten()[0]) * 10
+        else:
             # Enhanced calculation considering interactions and nonlinear effects
             
             # Calculate base environmental risk
@@ -141,9 +240,9 @@ def simulate_and_narrate(features, years=20):
             env_risk = rain_impact + water_impact + humidity_temp_interaction
             
             # Climate factors with interactions
-            climate_impact = (xt[indices[0]] * 0.5 +  # Climate change
+            climate_impact = (xt[4] * 0.5 +   # Climate change
                              urban_impact * 0.3 +     # Urbanization (modified by drainage)
-                             xt[indices[2]] * 0.2)    # Deforestation
+                             xt[6] * 0.2)    # Deforestation
             
             # Final risk calculation with nonlinear scaling
             # Higher weights for environmental factors in early years,
@@ -157,18 +256,16 @@ def simulate_and_narrate(features, years=20):
             # Add small random variation representing unpredictable factors
             random_variation = np.random.normal(0, 0.1)  # Reduced random variation for more stability
             risk = min(max(risk + random_variation, 0), 10)
-        else:
-            # Reshape for CNN and LSTM inputs
-            x_cnn = xt.reshape(1, 5, 4, 1)
-            x_lstm = generate_sequences([xt], 5)
-            # Get prediction from model
-            risk = float(model.predict([x_cnn, x_lstm]).flatten()[0]) * 10
         
         risks.append(float(risk))
         
         # Store factor values for trajectory analysis
         for i, factor in enumerate(factor_names):
-            feature_trajectories[factor].append(xt[indices[i]] * 10)  # Unscale for storing
+            idx_adjusted = i + 4  # Adjust for the flattened feature vector
+            feature_trajectories[factor].append(xt[idx_adjusted] * 10)  # Unscale for storing
+        
+        # Update x0 for next iteration
+        x0 = xt
     
     # Enhanced narrative generation with more detailed trend analysis
     
@@ -356,68 +453,131 @@ def run_simulation():
             low_factors = [k for k, v in scenario_factors.items() if v <= 3]
             
             detailed_narrative = narrative + "\n\n"
-            if high_factors:
-                detailed_narrative += f"High impact factors include: {', '.join(high_factors)}. "
-            if low_factors:
-                detailed_narrative += f"Well-managed factors include: {', '.join(low_factors)}. "
-                
-            return jsonify({
-                "risks": risks,
-                "narrative": detailed_narrative,
-                "years": list(range(years)),
-                "features": features,
-                "scenario_factors": scenario_factors,
-                "feature_trajectories": feature_trajectories
-            })
             
+            # Get feature importance information from the trained model
+            feature_importance = {}
+            environmental_factors = {}
+            
+            if flood_risk_model is not None:
+                # Extract feature importances from the trained model
+                model_importances = flood_risk_model.feature_importances_
+                model_features = ['Rainfall', 'Water Level', 'Humidity', 'Temperature']
+                
+                # Create normalized importances (sum to 100%)
+                total_importance = sum(model_importances)
+                for i, feature in enumerate(model_features):
+                    importance_pct = (model_importances[i] / total_importance) * 100
+                    environmental_factors[feature] = round(importance_pct, 2)
+                
+                # Calculate estimated factor contributions to the prediction
+                base_env_value = rainfall * model_importances[0] + \
+                                 water_level * model_importances[1] + \
+                                 humidity * model_importances[2] + \
+                                 temperature * model_importances[3]
+                
+                # Create an importance dictionary for all factors
+                feature_importance = {
+                    "Environmental": {
+                        "value": round(sum(model_importances) * 100, 2),
+                        "factors": environmental_factors
+                    },
+                    "Climate": {
+                        "value": round((1 - sum(model_importances)) * 100, 2),
+                        "factors": {
+                            factor: round(scenario_factors.get(factor, 5), 2) 
+                            for factor in ["ClimateChange", "Urbanization", "Deforestation", "DrainageSystems", "DamsQuality"]
+                        }
+                    }
+                }
+                
+                detailed_narrative += f"Based on our trained model, environmental factors account for {feature_importance['Environmental']['value']}% of flood risk, with Rainfall having {environmental_factors.get('Rainfall', 0)}% importance and Water Level at {environmental_factors.get('Water Level', 0)}% importance.\n\n"
+            
+            if high_factors:
+                detailed_narrative += f"High-impact factors: {', '.join(high_factors)}. "
+            if low_factors:
+                detailed_narrative += f"Low-impact factors: {', '.join(low_factors)}. "
+            
+            response = {
+                "risks": [round(r, 2) for r in risks],
+                "years": list(range(years)),
+                "narrative": detailed_narrative,
+                "features": {
+                    "Rainfall": rainfall,
+                    "WaterLevel": water_level,
+                    "Humidity": humidity,
+                    "Temperature": temperature
+                },
+                "scenario_factors": scenario_factors,
+                "feature_trajectories": {k: [round(v, 2) for v in vals] for k, vals in feature_trajectories.items()},
+                "feature_importance": feature_importance
+            }
+            
+            return jsonify(response)
         except Exception as e:
-            print(f"Error using scenario model: {e}")
-            # Fall back to keyword-based approach if there's an error
+            print(f"Error in scenario simulation: {e}")
     
-    # Original keyword-based approach as fallback
-    # Parse scenario text for features
-    scenario = scenario_text.lower()
-    keywords = {
-        "urban": "Urbanization",
-        "deforest": "Deforestation",
-        "climate": "ClimateChange",
-        "drainage": "DrainageSystems",
-        "dam": "DamsQuality"
-    }
-    
-    # Set default values for all features
+    # Fallback to basic simulation if scenario model fails or is not available
     features = {
         "Rainfall": rainfall,
         "WaterLevel": water_level,
         "Humidity": humidity,
         "Temperature": temperature,
-        "ClimateChange": 5,
-        "Urbanization": 5,
-        "Deforestation": 5,
-        "DrainageSystems": 5,
-        "DamsQuality": 5
+        "ClimateChange": 5.0,
+        "Urbanization": 5.0,
+        "Deforestation": 5.0,
+        "DrainageSystems": 5.0,
+        "DamsQuality": 5.0
     }
     
-    # Adjust based on scenario text
-    for word, feat in keywords.items():
-        if word in scenario:
-            if "increase" in scenario or "rapid" in scenario or "aggressive" in scenario:
-                features[feat] = 8 + np.random.rand() * 2
-            elif "decrease" in scenario or "recovery" in scenario or "improve" in scenario:
-                features[feat] = 2 + np.random.rand() * 2
-            elif "fail" in scenario or "collapse" in scenario or "weak" in scenario:
-                features[feat] = 1 + np.random.rand()
-    
-    # Run simulation
+    # Run simulation with default features
     risks, narrative, feature_trajectories = simulate_and_narrate(features, years)
     
-    return jsonify({
-        "risks": risks,
-        "narrative": narrative,
+    # Get feature importance information from the trained model
+    feature_importance = {}
+    
+    if flood_risk_model is not None:
+        # Extract feature importances from the trained model
+        model_importances = flood_risk_model.feature_importances_
+        model_features = ['Rainfall', 'Water Level', 'Humidity', 'Temperature']
+        
+        # Calculate environmental factor importances
+        environmental_factors = {}
+        total_importance = sum(model_importances)
+        for i, feature in enumerate(model_features):
+            importance_pct = (model_importances[i] / total_importance) * 100
+            environmental_factors[feature] = round(importance_pct, 2)
+        
+        # Create an importance dictionary for all factors
+        feature_importance = {
+            "Environmental": {
+                "value": round(sum(model_importances) * 100, 2),
+                "factors": environmental_factors
+            },
+            "Climate": {
+                "value": round((1 - sum(model_importances)) * 100, 2),
+                "factors": {
+                    "ClimateChange": 25,
+                    "Urbanization": 25,
+                    "Deforestation": 20,
+                    "DrainageSystems": 15,
+                    "DamsQuality": 15
+                }
+            }
+        }
+        
+        # Add feature importance information to the narrative
+        narrative += f"\n\nModel analysis shows Rainfall ({environmental_factors.get('Rainfall', 0)}%) and Water Level ({environmental_factors.get('Water Level', 0)}%) are the most critical environmental factors for flood risk."
+    
+    response = {
+        "risks": [round(r, 2) for r in risks],
         "years": list(range(years)),
+        "narrative": narrative,
         "features": features,
-        "feature_trajectories": feature_trajectories
-    })
+        "feature_trajectories": {k: [round(v, 2) for v in vals] for k, vals in feature_trajectories.items()},
+        "feature_importance": feature_importance
+    }
+    
+    return jsonify(response)
 
 
 if __name__ == '__main__':

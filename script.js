@@ -136,6 +136,12 @@ document.addEventListener('DOMContentLoaded', function() {
         initScenarioSelection();
         initNavigation();
         
+        // Set default values for form inputs
+        document.getElementById('rainfall').value = '50';
+        document.getElementById('water-level').value = '2';
+        document.getElementById('humidity').value = '60';
+        document.getElementById('temperature').value = '20';
+        
         console.log('Page initialization complete');
     }
     
@@ -405,21 +411,29 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update active tab pane
         tabPanes.forEach(pane => {
             pane.classList.remove('active');
+            if (pane.id === tabName + '-tab') {
+                pane.classList.add('active');
+            }
         });
-        document.getElementById(`${tabName}-tab`).classList.add('active');
         
-        // Redraw charts if needed
-        if (tabName === 'gauge' && gaugeChart) {
-            gaugeChart.update();
-        } else if (tabName === 'chart' && factorsChart) {
-            factorsChart.update();
-        } else if (tabName === 'history' && historyChart) {
-            historyChart.update();
-        } else if (tabName === 'simulation' && simulationChart) {
-            simulationChart.update();
-        } else if (tabName === 'map' && map) {
-            map.invalidateSize();
-        }
+        console.log('Activating tab:', tabName);
+        
+        // Resize charts when their tab becomes active to ensure proper rendering
+        setTimeout(() => {
+            if (tabName === 'gauge' && gaugeChart) {
+                console.log('Resizing gauge chart');
+                gaugeChart.resize();
+            } else if (tabName === 'chart' && factorsChart) {
+                console.log('Resizing factors chart');
+                factorsChart.resize();
+            } else if (tabName === 'history' && historyChart) {
+                console.log('Resizing history chart');
+                historyChart.resize();
+            } else if (tabName === 'simulation' && simulationChart) {
+                console.log('Resizing simulation chart');
+                simulationChart.resize();
+            }
+        }, 50);
     }
     
     // Function to predict flood risk using simplified model
@@ -719,6 +733,47 @@ document.addEventListener('DOMContentLoaded', function() {
             factorsHTML += '</div>';
         }
         
+        // Add feature importance visualization if available
+        if (data.feature_importance) {
+            factorsHTML += '<h4>Feature Importance Analysis:</h4>';
+            factorsHTML += '<div class="feature-importance-container">';
+            
+            // Create a table for feature importance
+            factorsHTML += '<table class="feature-importance-table">';
+            factorsHTML += '<tr><th>Category</th><th>Factor</th><th>Importance</th></tr>';
+            
+            // Add environmental factors
+            if (data.feature_importance.Environmental) {
+                factorsHTML += `<tr class="category-row"><td colspan="2">Environmental Factors</td><td>${data.feature_importance.Environmental.value.toFixed(1)}%</td></tr>`;
+                
+                // Add individual environmental factors
+                for (const [factor, importance] of Object.entries(data.feature_importance.Environmental.factors)) {
+                    const importanceClass = importance > 30 ? 'high' : importance < 15 ? 'low' : 'medium';
+                    factorsHTML += `<tr><td></td><td>${factor}</td><td><span class="importance-value ${importanceClass}">${importance.toFixed(1)}%</span></td></tr>`;
+                }
+            }
+            
+            // Add climate factors
+            if (data.feature_importance.Climate) {
+                factorsHTML += `<tr class="category-row"><td colspan="2">Climate & Human Factors</td><td>${data.feature_importance.Climate.value.toFixed(1)}%</td></tr>`;
+                
+                // Add individual climate factors
+                for (const [factor, importance] of Object.entries(data.feature_importance.Climate.factors)) {
+                    const importanceClass = importance > 7 ? 'high' : importance < 3 ? 'low' : 'medium';
+                    factorsHTML += `<tr><td></td><td>${formatFactorName(factor)}</td><td><span class="factor-value ${importanceClass}">${importance.toFixed(1)}</span></td></tr>`;
+                }
+            }
+            
+            factorsHTML += '</table>';
+            
+            // Add feature importance chart
+            factorsHTML += '<div class="importance-chart-container">';
+            factorsHTML += '<canvas id="importance-chart" height="250"></canvas>';
+            factorsHTML += '</div>';
+            
+            factorsHTML += '</div>'; // Close feature-importance-container
+        }
+        
         simulationFactors.innerHTML = factorsHTML;
         
         // Update simulation chart
@@ -727,6 +782,11 @@ document.addEventListener('DOMContentLoaded', function() {
         // Render factor trajectories chart if available
         if (data.feature_trajectories) {
             renderFeatureTrajectories(data.feature_trajectories, data.years);
+        }
+        
+        // Render feature importance chart if available
+        if (data.feature_importance) {
+            renderFeatureImportanceChart(data.feature_importance);
         }
     }
     
@@ -839,16 +899,6 @@ document.addEventListener('DOMContentLoaded', function() {
             simulationChart.destroy();
         }
         
-        // Create gradient for line and background fill
-        const gradientStroke = ctx.createLinearGradient(0, 0, 800, 0);
-        gradientStroke.addColorStop(0, 'rgba(142, 68, 173, 1)');
-        gradientStroke.addColorStop(0.5, 'rgba(155, 89, 182, 1)');
-        gradientStroke.addColorStop(1, 'rgba(165, 105, 189, 1)');
-        
-        const gradientFill = ctx.createLinearGradient(0, 0, 0, 400);
-        gradientFill.addColorStop(0, 'rgba(142, 68, 173, 0.4)');
-        gradientFill.addColorStop(1, 'rgba(142, 68, 173, 0.05)');
-        
         // Create new chart
         simulationChart = new Chart(ctx, {
             type: 'line',
@@ -857,17 +907,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 datasets: [{
                     label: 'Flood Risk (0-10)',
                     data: data.risks,
-                    backgroundColor: gradientFill,
-                    borderColor: gradientStroke,
-                    borderWidth: 3,
+                    backgroundColor: 'rgba(0, 112, 243, 0.2)',
+                    borderColor: 'rgba(0, 112, 243, 1)',
+                    borderWidth: 2,
                     fill: 'start',
-                    tension: 0.4,
-                    pointRadius: 5,
-                    pointHoverRadius: 8,
-                    pointBackgroundColor: '#fff',
-                    pointBorderColor: gradientStroke,
-                    pointBorderWidth: 2,
-                    pointHoverBorderWidth: 3
+                    tension: 0.4
                 }]
             },
             options: {
@@ -940,6 +984,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         });
+        
+        // Manually resize the chart after a short delay to ensure proper rendering
+        setTimeout(() => {
+            if (simulationChart) {
+                simulationChart.resize();
+            }
+        }, 100);
     }
     
     // Function to show error message
@@ -1481,26 +1532,40 @@ document.addEventListener('DOMContentLoaded', function() {
             gaugeChart.destroy();
         }
         
-        // Create gradient
-        const gradientFill = ctx.createLinearGradient(0, 0, 0, 400);
-        gradientFill.addColorStop(0, 'rgba(0, 112, 243, 0.8)');
-        gradientFill.addColorStop(1, 'rgba(0, 210, 255, 0.2)');
+        // Handle different prediction data formats
+        let probability = 0;
+        let riskLevel = 'low';
+        
+        if (prediction) {
+            // Normalize probability to 0-10 scale for consistency
+            probability = prediction.probability ? (prediction.probability > 10 ? prediction.probability / 10 : prediction.probability) : 0;
+            riskLevel = prediction.level || getRiskLevelFromScore(probability);
+        }
+        
+        console.log('Creating gauge chart with probability:', probability, 'risk level:', riskLevel);
         
         // Create new gauge chart
         gaugeChart = new Chart(ctx, {
             type: 'doughnut',
             data: {
                 datasets: [{
-                    data: [prediction.probability, 100 - prediction.probability],
-                    backgroundColor: [gradientFill, 'rgba(28, 36, 56, 0.6)'],
+                    data: [probability, 10 - probability],
+                    backgroundColor: [
+                        getRiskColor(riskLevel),
+                        'rgba(28, 36, 56, 0.2)'
+                    ],
                     borderWidth: 0,
-                    borderRadius: 5
+                    circumference: 180,
+                    rotation: 270
                 }]
             },
             options: {
-                circumference: 180,
-                rotation: -90,
-                cutout: '80%',
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '85%',
+                layout: {
+                    padding: 20
+                },
                 plugins: {
                     legend: {
                         display: false
@@ -1509,19 +1574,17 @@ document.addEventListener('DOMContentLoaded', function() {
                         enabled: false
                     }
                 },
-                responsive: true,
-                maintainAspectRatio: false
+                animation: {
+                    animateRotate: true,
+                    animateScale: true,
+                    duration: 1000,
+                    easing: 'easeOutCubic'
+                }
             }
         });
         
-        // Add text in the middle of the gauge
-        const gaugeContainer = document.querySelector('.gauge-container');
-        const gaugeText = document.createElement('div');
-        gaugeText.className = 'gauge-text';
-        gaugeText.innerHTML = `
-            <div class="gauge-value">${prediction.probability.toFixed(1)}%</div>
-            <div class="gauge-label" style="color: ${getRiskColor(prediction.level)};">${capitalizeFirstLetter(prediction.level)} Risk</div>
-        `;
+        // Add gauge text overlay with risk level and score
+        const gaugeContainer = document.querySelector('#gauge-tab .gauge-container');
         
         // Remove existing gauge text if any
         const existingGaugeText = gaugeContainer.querySelector('.gauge-text');
@@ -1529,8 +1592,22 @@ document.addEventListener('DOMContentLoaded', function() {
             existingGaugeText.remove();
         }
         
-        gaugeContainer.style.position = 'relative';
+        // Create gauge text
+        const gaugeText = document.createElement('div');
+        gaugeText.className = 'gauge-text';
+        gaugeText.innerHTML = `
+            <div class="gauge-value">${probability.toFixed(1)}</div>
+            <div class="gauge-label">${capitalizeFirstLetter(riskLevel)} Risk</div>
+        `;
+        
         gaugeContainer.appendChild(gaugeText);
+        
+        // Manually resize the chart after a short delay to ensure proper rendering
+        setTimeout(() => {
+            if (gaugeChart) {
+                gaugeChart.resize();
+            }
+        }, 100);
     }
     
     // Function to update factors chart
@@ -1542,11 +1619,29 @@ document.addEventListener('DOMContentLoaded', function() {
             factorsChart.destroy();
         }
         
-        // Get factor values
-        const rainfallFactor = (prediction.factorScores.rainfall / prediction.totalScore * 100);
-        const waterLevelFactor = (prediction.factorScores.waterLevel / prediction.totalScore * 100);
-        const humidityFactor = (prediction.factorScores.humidity / prediction.totalScore * 100);
-        const temperatureFactor = (prediction.factorScores.temperature / prediction.totalScore * 100);
+        console.log('Updating factors chart with prediction:', prediction);
+        
+        // Default values in case prediction data is missing components
+        let factorScores = {
+            rainfall: 25,
+            waterLevel: 25,
+            humidity: 25,
+            temperature: 25
+        };
+        
+        let totalScore = 100;
+        
+        // Get factor values from prediction if available
+        if (prediction && prediction.factorScores) {
+            factorScores = prediction.factorScores;
+            totalScore = prediction.totalScore || 100;
+        }
+        
+        // Get factor values with proper error handling
+        const rainfallFactor = (factorScores.rainfall / totalScore * 100) || 25;
+        const waterLevelFactor = (factorScores.waterLevel / totalScore * 100) || 25;
+        const humidityFactor = (factorScores.humidity / totalScore * 100) || 25;
+        const temperatureFactor = (factorScores.temperature / totalScore * 100) || 25;
         
         // Ensure the values add up to 100% by adjusting for rounding errors
         const sum = rainfallFactor + waterLevelFactor + humidityFactor + temperatureFactor;
@@ -1567,53 +1662,43 @@ document.addEventListener('DOMContentLoaded', function() {
             'rgba(142, 68, 173, 0.9)'  // Temperature - Violet
         ];
         
-        // Get the container dimensions
-        const chartContainer = document.querySelector('#chart-tab .chart-container');
-        const containerWidth = chartContainer.clientWidth;
+        console.log('Chart data:', [
+            (rainfallFactor * adjustmentFactor).toFixed(1),
+            (waterLevelFactor * adjustmentFactor).toFixed(1),
+            (humidityFactor * adjustmentFactor).toFixed(1),
+            (temperatureFactor * adjustmentFactor).toFixed(1)
+        ]);
         
-        // Calculate ideal chart dimensions to prevent cutoff
-        // Use 60% of container width for the chart if legend is on the right
-        const chartWidth = Math.min(containerWidth * 0.6, 300);
-        
-        // Create new pie chart
+        // Create new pie chart with simplified options to ensure it displays
         factorsChart = new Chart(ctx, {
-            type: 'doughnut', // Using doughnut for a softer look
+            type: 'doughnut',
             data: {
                 labels: ['Rainfall', 'Water Level', 'Humidity', 'Temperature'],
                 datasets: [{
                     data: [
-                        (rainfallFactor * adjustmentFactor).toFixed(1),
-                        (waterLevelFactor * adjustmentFactor).toFixed(1),
-                        (humidityFactor * adjustmentFactor).toFixed(1),
-                        (temperatureFactor * adjustmentFactor).toFixed(1)
+                        parseFloat((rainfallFactor * adjustmentFactor).toFixed(1)),
+                        parseFloat((waterLevelFactor * adjustmentFactor).toFixed(1)),
+                        parseFloat((humidityFactor * adjustmentFactor).toFixed(1)),
+                        parseFloat((temperatureFactor * adjustmentFactor).toFixed(1))
                     ],
                     backgroundColor: colors,
                     hoverBackgroundColor: hoverColors,
                     borderColor: 'rgba(28, 36, 56, 0.4)',
-                    borderWidth: 1,
-                    borderRadius: 6, // Add rounded corners to the segments
-                    hoverBorderWidth: 2,
-                    hoverOffset: 5, // Make segments move outward on hover
-                    offset: 3, // Small spacing between segments
-                    cutout: '25%' // Use a small cutout for a softer doughnut look
+                    borderWidth: 1
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                circumference: 360, // Full circle
                 plugins: {
                     legend: {
                         position: 'right',
-                        align: 'center',
                         labels: {
                             color: '#f0f2f5',
                             font: {
                                 size: 14
                             },
-                            padding: 15,
-                            usePointStyle: true, // Use circular points in legend
-                            pointStyle: 'circle'
+                            padding: 15
                         }
                     },
                     tooltip: {
@@ -1626,8 +1711,6 @@ document.addEventListener('DOMContentLoaded', function() {
                             size: 13
                         },
                         padding: 15,
-                        caretSize: 8,
-                        cornerRadius: 8,
                         callbacks: {
                             label: function(context) {
                                 const label = context.label || '';
@@ -1646,73 +1729,34 @@ document.addEventListener('DOMContentLoaded', function() {
                             }
                         }
                     }
-                },
-                layout: {
-                    padding: {
-                        left: 25,
-                        right: 25,
-                        top: 25,
-                        bottom: 25
-                    }
-                },
-                animation: {
-                    animateRotate: true,
-                    animateScale: true,
-                    duration: 1500, // Longer animation
-                    easing: 'easeOutCirc', // Circular easing for smoother animation
-                    delay: function(context) {
-                        // Staggered animation for each segment
-                        return context.dataIndex * 150;
-                    }
-                },
-                // Adjust radius to prevent cutoff
-                radius: '80%'
+                }
             }
         });
         
-        // Add title above the chart
-        const titleElement = document.createElement('div');
-        titleElement.className = 'chart-title';
-        titleElement.textContent = 'Risk Factor Distribution';
-        
-        // Remove existing title if any
-        const existingTitle = chartContainer.querySelector('.chart-title');
-        if (existingTitle) {
-            existingTitle.remove();
-        }
-        
-        // Insert title at the top of container
-        chartContainer.insertBefore(titleElement, chartContainer.firstChild);
-        
-        // Add a chart wrapper div for better centering
-        const chartWrapper = document.createElement('div');
-        chartWrapper.className = 'chart-wrapper';
-        
-        // Replace existing wrapper if any
-        const existingWrapper = chartContainer.querySelector('.chart-wrapper');
-        if (existingWrapper) {
-            existingWrapper.remove();
-        }
-        
-        // Move the canvas into the wrapper
-        const canvas = chartContainer.querySelector('canvas');
-        if (canvas) {
-            const canvasParent = canvas.parentNode;
-            chartWrapper.appendChild(canvas);
-            canvasParent.appendChild(chartWrapper);
-            
-            // Force chart resize after a short delay to ensure proper rendering
-            setTimeout(() => {
-                if (factorsChart) {
-                    factorsChart.resize();
-                }
-            }, 100);
-        }
+        // Manually resize the chart after a short delay to ensure proper rendering
+        setTimeout(() => {
+            if (factorsChart) {
+                factorsChart.resize();
+            }
+        }, 100);
     }
     
     // Function to update history chart
     function updateHistoryChart(rainfall, waterLevel, humidity, temperature, prediction) {
         const ctx = document.getElementById('history-chart').getContext('2d');
+        
+        // Handle missing prediction data
+        let probability = 0;
+        if (prediction) {
+            // Normalize probability to 0-100 scale for consistency with historical data
+            probability = prediction.probability || 0;
+            // Ensure it's on a 0-100 scale
+            if (probability <= 10) {
+                probability *= 10;
+            }
+        }
+        
+        console.log('Updating history chart with probability:', probability);
         
         // Add current data to history comparison
         const currentData = {
@@ -1721,7 +1765,7 @@ document.addEventListener('DOMContentLoaded', function() {
             waterLevel: waterLevel,
             humidity: humidity,
             temperature: temperature,
-            riskScore: prediction.probability
+            riskScore: probability
         };
         
         const historyData = [...historicalFloodData, currentData];
@@ -1731,16 +1775,7 @@ document.addEventListener('DOMContentLoaded', function() {
             historyChart.destroy();
         }
         
-        // Create gradient for line
-        const gradientStroke = ctx.createLinearGradient(0, 0, 0, 400);
-        gradientStroke.addColorStop(0, 'rgba(0, 112, 243, 1)');
-        gradientStroke.addColorStop(1, 'rgba(0, 210, 255, 1)');
-        
-        const gradientFill = ctx.createLinearGradient(0, 0, 0, 400);
-        gradientFill.addColorStop(0, 'rgba(0, 112, 243, 0.3)');
-        gradientFill.addColorStop(1, 'rgba(0, 210, 255, 0.05)');
-        
-        // Create new chart
+        // Create new chart with simplified options to ensure it displays
         historyChart = new Chart(ctx, {
             type: 'line',
             data: {
@@ -1748,29 +1783,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 datasets: [{
                     label: 'Risk Score',
                     data: historyData.map(item => item.riskScore),
-                    backgroundColor: gradientFill,
-                    borderColor: gradientStroke,
-                    borderWidth: 3,
-                    tension: 0.4,
+                    backgroundColor: 'rgba(0, 112, 243, 0.2)',
+                    borderColor: 'rgba(0, 112, 243, 1)',
+                    borderWidth: 2,
                     fill: true,
-                    pointBackgroundColor: function(context) {
-                        const index = context.dataIndex;
-                        return index === historyData.length - 1 ? '#ffffff' : gradientStroke;
-                    },
-                    pointBorderColor: function(context) {
-                        const index = context.dataIndex;
-                        return index === historyData.length - 1 ? gradientStroke : gradientStroke;
-                    },
-                    pointRadius: function(context) {
-                        const index = context.dataIndex;
-                        return index === historyData.length - 1 ? 8 : 5;
-                    },
-                    pointBorderWidth: function(context) {
-                        const index = context.dataIndex;
-                        return index === historyData.length - 1 ? 3 : 2;
-                    },
-                    pointHoverRadius: 8,
-                    pointHoverBorderWidth: 3
+                    tension: 0.3
                 }]
             },
             options: {
@@ -1779,30 +1796,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 scales: {
                     y: {
                         beginAtZero: true,
+                        max: 100,
                         title: {
                             display: true,
-                            text: 'Risk Score',
-                            font: {
-                                weight: 'bold',
-                                size: 14
-                            }
-                        },
-                        max: 100,
-                        grid: {
-                            color: 'rgba(42, 55, 82, 0.3)',
-                            drawBorder: false
-                        },
-                        ticks: {
-                            padding: 10
-                        }
-                    },
-                    x: {
-                        grid: {
-                            display: false,
-                            drawBorder: false
-                        },
-                        ticks: {
-                            padding: 10
+                            text: 'Risk Score'
                         }
                     }
                 },
@@ -1811,17 +1808,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         display: false
                     },
                     tooltip: {
-                        backgroundColor: 'rgba(12, 16, 27, 0.9)',
-                        titleFont: {
-                            size: 14,
-                            weight: 'bold'
-                        },
-                        bodyFont: {
-                            size: 13
-                        },
-                        padding: 15,
-                        caretSize: 8,
-                        cornerRadius: 8,
                         callbacks: {
                             afterLabel: function(context) {
                                 const index = context.dataIndex;
@@ -1841,6 +1827,13 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Update historical comparison info
         updateHistoricalComparisonInfo(historyData, prediction);
+        
+        // Manually resize the chart after a short delay to ensure proper rendering
+        setTimeout(() => {
+            if (historyChart) {
+                historyChart.resize();
+            }
+        }, 100);
     }
     
     // Function to update historical comparison info
@@ -1984,5 +1977,122 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         });
+    }
+    
+    // New function to render feature importance chart
+    function renderFeatureImportanceChart(importanceData) {
+        const ctx = document.getElementById('importance-chart').getContext('2d');
+        
+        // Prepare datasets
+        const labels = [];
+        const values = [];
+        const colors = [];
+        
+        // Add environmental factors
+        if (importanceData.Environmental && importanceData.Environmental.factors) {
+            for (const [factor, importance] of Object.entries(importanceData.Environmental.factors)) {
+                labels.push(factor);
+                values.push(importance);
+                colors.push(getFactorColor(factor, importance));
+            }
+        }
+        
+        // Add climate factors - use factor name without score
+        if (importanceData.Climate && importanceData.Climate.factors) {
+            for (const [factor, importance] of Object.entries(importanceData.Climate.factors)) {
+                labels.push(formatFactorName(factor));
+                values.push(importance/2); // Scale climate factors for better visualization
+                colors.push(getFactorColor(factor, importance));
+            }
+        }
+        
+        // Create chart with 'bar' type instead of deprecated 'horizontalBar'
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Feature Importance',
+                    data: values,
+                    backgroundColor: colors,
+                    borderColor: 'rgba(42, 55, 82, 0.3)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                indexAxis: 'y',  // This makes a horizontal bar chart
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Importance (%)',
+                            font: { weight: 'bold' }
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Factor',
+                            font: { weight: 'bold' }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(12, 16, 27, 0.9)',
+                        titleFont: {
+                            weight: 'bold'
+                        },
+                        callbacks: {
+                            label: function(context) {
+                                return `Importance: ${context.raw.toFixed(1)}%`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Helper function to get color for a factor based on its importance
+    function getFactorColor(factor, importance) {
+        // Base colors for different factor types
+        const environmentalColors = {
+            'Rainfall': 'rgba(0, 112, 243, 0.7)',      // Blue
+            'Water Level': 'rgba(0, 210, 255, 0.7)',   // Light Blue
+            'Humidity': 'rgba(102, 126, 234, 0.7)',    // Purple
+            'Temperature': 'rgba(142, 68, 173, 0.7)',  // Violet
+            'WaterLevel': 'rgba(0, 210, 255, 0.7)'     // Light Blue (alternate name)
+        };
+        
+        const climateColors = {
+            'ClimateChange': 'rgba(255, 82, 82, 0.7)',      // Red
+            'Urbanization': 'rgba(155, 89, 182, 0.7)',      // Purple
+            'Deforestation': 'rgba(46, 204, 113, 0.7)',     // Green
+            'DrainageSystems': 'rgba(52, 152, 219, 0.7)',   // Blue
+            'DamsQuality': 'rgba(243, 156, 18, 0.7)'        // Orange
+        };
+        
+        // Determine base color
+        let baseColor = environmentalColors[factor] || climateColors[factor];
+        
+        // If base color not found, use a default based on importance
+        if (!baseColor) {
+            if (importance > 30) {
+                baseColor = 'rgba(255, 82, 82, 0.7)';  // Red for high importance
+            } else if (importance > 15) {
+                baseColor = 'rgba(243, 156, 18, 0.7)'; // Orange for medium importance
+            } else {
+                baseColor = 'rgba(46, 204, 113, 0.7)'; // Green for low importance
+            }
+        }
+        
+        return baseColor;
     }
 }); 
